@@ -1,4 +1,4 @@
-module goutils
+module github.com/armosec/goutils
 
 go 1.16
 
