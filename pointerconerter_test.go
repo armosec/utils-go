@@ -1,41 +1,30 @@
 package goutils
 
-import "testing"
+import (
+	"testing"
+
+	"github.com/stretchr/testify/assert"
+)
 
 func TestBoolToString(t *testing.T) {
-	if BoolToString(true) != "true" {
-		t.Errorf("expected: true")
-	}
-	if BoolToString(false) != "false" {
-		t.Errorf("expected: false")
-	}
+	assert.Equal(t, BoolToString(true), "true")
+	assert.Equal(t, BoolToString(false), "false")
 }
 
 func TestBoolPointerToString(t *testing.T) {
 	tr := true
-	if BoolPointerToString(&tr) != "true" {
-		t.Errorf("expected: true")
-	}
+	assert.Equal(t, BoolPointerToString(&tr), "true")
+
 	f := false
-	if BoolPointerToString(&f) != "false" {
-		t.Errorf("expected: false")
-	}
+	assert.Equal(t, BoolPointerToString(&f), "false")
 }
 
 func TestStringToBool(t *testing.T) {
-	if !StringToBool("true") {
-		t.Errorf("expected: true")
-	}
-	if StringToBool("false") {
-		t.Errorf("expected: false")
-	}
+	assert.True(t, StringToBool("true"))
+	assert.False(t, StringToBool("false"))
 }
 
 func TestStringToBoolPointer(t *testing.T) {
-	if !*StringToBoolPointer("true") {
-		t.Errorf("expected: true")
-	}
-	if *StringToBoolPointer("false") {
-		t.Errorf("expected: false")
-	}
+	assert.True(t, *StringToBoolPointer("true"))
+	assert.False(t, *StringToBoolPointer("false"))
 }
