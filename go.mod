@@ -1,4 +1,4 @@
-module github.com/armosec/goutils
+module github.com/armosec/utils-go
 
 go 1.16
 
