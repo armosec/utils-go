@@ -1,4 +1,4 @@
-module utils-go
+module github.com/armosec/utils-go
 
 go 1.17
 
