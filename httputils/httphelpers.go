@@ -1,4 +1,4 @@
-package shared
+package httputils
 
 import (
 	"bytes"
