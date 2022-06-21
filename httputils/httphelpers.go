@@ -5,8 +5,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"math"
 	"net/http"
 	"strings"
+	"sync"
 )
 
 // JSONDecoder returns JSON decoder for given string
@@ -85,4 +87,69 @@ func HttpRespToString(resp *http.Response) (string, error) {
 	}
 
 	return respStr, err
+}
+
+//SplitSlice2Chunks - *recursively* splits a slice to chunks of sub slices that do not exceed max bytes size
+//Chunks might be bigger than max size if the slice contains element(s) that are bigger than the max size
+//this split algorithm fits for slices with elements that share more or less the same size per element
+//uses optimistic average size splitting to enhance performance and reduce the use of json encoding for size calculations
+func SplitSlice2Chunks[T any](slice []T, maxSize int, chunks chan<- []T, wg *sync.WaitGroup) {
+	wg.Add(1)
+	go func(slice []T, maxSize int, chunks chan<- []T, wg *sync.WaitGroup) {
+		defer wg.Done()
+		if len(slice) < 2 {
+			//cannot split if the slice is empty or has one element
+			chunks <- slice
+			return
+		}
+		//check slice size
+		jsonSize := JSONSize(slice)
+		if jsonSize <= maxSize {
+			//slice size is smaller than max size no splitting needed
+			chunks <- slice
+			return
+		}
+		//slice is bigger than max size
+		//calculate the average size + 5% of a single element T
+		avgTSize := int(math.Round(float64(jsonSize) * 1.05 / float64(len(slice))))
+		//calculate the average number of elements that will not exceed max size
+		avgSliceSize := maxSize / avgTSize
+		last := len(slice)
+		if avgSliceSize >= last {
+			avgSliceSize = last / 2
+		} else if avgSliceSize < 1 {
+			avgSliceSize = 1
+		}
+
+		//split the slice to slices of avgSliceSize size
+		startIndex := 0
+		for i := avgSliceSize; i < last; i += avgSliceSize {
+			SplitSlice2Chunks(slice[startIndex:i], maxSize, chunks, wg)
+			startIndex = i
+		}
+		//send the last part of the slice
+		SplitSlice2Chunks(slice[startIndex:last], maxSize, chunks, wg)
+	}(slice, maxSize, chunks, wg)
+}
+
+//jsonSize returns the size in bytes of the json encoding of i
+func JSONSize(i interface{}) int {
+	if i == nil {
+		return 0
+	}
+	counter := bytesCounter{}
+	enc := json.NewEncoder(&counter)
+	enc.Encode(i)
+	return counter.count
+}
+
+//bytesCounter - dummy io writer that just counts bytes without writing
+type bytesCounter struct {
+	count int
+}
+
+func (bc *bytesCounter) Write(p []byte) (n int, err error) {
+	pSize := len(p)
+	bc.count += pSize
+	return pSize, nil
 }
