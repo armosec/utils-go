@@ -90,10 +90,30 @@ func HttpRespToString(resp *http.Response) (string, error) {
 }
 
 //SplitSlice2Chunks - *recursively* splits a slice to chunks of sub slices that do not exceed max bytes size
+//Returns a channels for receiving []T chunks and the original len of []T
+//If []T is empty the function will return a closed chunks channel
 //Chunks might be bigger than max size if the slice contains element(s) that are bigger than the max size
 //this split algorithm fits for slices with elements that share more or less the same size per element
 //uses optimistic average size splitting to enhance performance and reduce the use of json encoding for size calculations
-func SplitSlice2Chunks[T any](slice []T, maxSize int, chunks chan<- []T, wg *sync.WaitGroup) {
+//chunks channel will be closed after splitting is done
+func SplitSlice2Chunks[T any](slice []T, maxSize int, channelBuffer int) (chunksChannel <-chan []T, sliceSize int) {
+	channel := make(chan []T, channelBuffer)
+	sliceSize = len(slice)
+	if sliceSize > 0 {
+		go func(chunksChannel chan<- []T) {
+			splitWg := &sync.WaitGroup{}
+			splitSlice2Chunks(slice, maxSize, chunksChannel, splitWg)
+			splitWg.Wait()
+			close(chunksChannel)
+		}(channel)
+	} else {
+		close(channel)
+	}
+	chunksChannel = channel
+	return chunksChannel, sliceSize
+}
+
+func splitSlice2Chunks[T any](slice []T, maxSize int, chunks chan<- []T, wg *sync.WaitGroup) {
 	wg.Add(1)
 	go func(slice []T, maxSize int, chunks chan<- []T, wg *sync.WaitGroup) {
 		defer wg.Done()
@@ -124,11 +144,11 @@ func SplitSlice2Chunks[T any](slice []T, maxSize int, chunks chan<- []T, wg *syn
 		//split the slice to slices of avgSliceSize size
 		startIndex := 0
 		for i := avgSliceSize; i < last; i += avgSliceSize {
-			SplitSlice2Chunks(slice[startIndex:i], maxSize, chunks, wg)
+			splitSlice2Chunks(slice[startIndex:i], maxSize, chunks, wg)
 			startIndex = i
 		}
 		//send the last part of the slice
-		SplitSlice2Chunks(slice[startIndex:last], maxSize, chunks, wg)
+		splitSlice2Chunks(slice[startIndex:last], maxSize, chunks, wg)
 	}(slice, maxSize, chunks, wg)
 }
 

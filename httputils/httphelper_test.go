@@ -131,13 +131,7 @@ func TestSplitSlice2Chunks(t *testing.T) {
 	}
 
 	//split splice to chunks
-	chunksChan := make(chan []testStruct, 10)
-	wg := sync.WaitGroup{}
-	SplitSlice2Chunks(testTypeSlice, 100, chunksChan, &wg)
-	go func() {
-		wg.Wait()
-		close(chunksChan)
-	}()
+	chunksChan, totalTestTypes := SplitSlice2Chunks(testTypeSlice, 100, 10)
 	testWg := sync.WaitGroup{}
 	var totalReceived, numOfChunks, maxChunkSize, minChunkSize, maxChunkLength, minChunkLength int
 	testWg.Add(1)
@@ -166,7 +160,7 @@ func TestSplitSlice2Chunks(t *testing.T) {
 	//wait for all chunks to arrive
 	testWg.Wait()
 	//compare with expected
-	assert.Equal(t, len(testTypeSlice), totalReceived, "total elements received is not equal to number of element sent")
+	assert.Equal(t, totalTestTypes, totalReceived, "total elements received is not equal to number of element sent")
 	assert.Equal(t, 3, minChunkLength, "minChunkLength must be same as expected minChunkLength")
 	assert.Equal(t, 3, maxChunkLength, "maxChunkLength must be same as expected maxChunkLength")
 	assert.Equal(t, 77, minChunkSize, "minChunkSize must be same as expected minChunkSize")
