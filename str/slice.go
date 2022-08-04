@@ -27,9 +27,11 @@ func StringInSliceCaseInsensitive(strSlice []string, str string) bool {
 
 // MapStringToSlice returns map's keys
 func MapStringToSlice(strMap map[string]interface{}) []string {
-	strSlice := []string{}
+	strSlice := make([]string, len(strMap))
+	i := 0
 	for k := range strMap {
-		strSlice = append(strSlice, k)
+		strSlice[i] = k
+		i++
 	}
 	return strSlice
 }
