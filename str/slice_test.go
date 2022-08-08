@@ -68,9 +68,9 @@ func TestRemoveIndexFromStringList(t *testing.T) {
 	for i, v := range tests {
 		RemoveIndexFromStringSlice(&v.origin, v.index)
 		assert.Equal(t, len(v.expected), len(v.origin), i)
-		assert.Equal(t, v.expected[0], v.origin[0], i)
-		assert.Equal(t, v.expected[1], v.origin[1], i)
+		assert.Equal(t, v.expected, v.origin)
 	}
+
 }
 
 func TestMergeSliceAndMap(t *testing.T) {
