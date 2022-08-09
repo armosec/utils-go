@@ -32,6 +32,18 @@ func HttpDelete(httpClient IHttpClient, fullURL string, headers map[string]strin
 
 	return httpClient.Do(req)
 }
+
+func HttpHead(httpClient IHttpClient, fullURL string, headers map[string]string) (*http.Response, error) {
+
+	req, err := http.NewRequest("HEAD", fullURL, nil)
+	if err != nil {
+		return nil, err
+	}
+	setHeaders(req, headers)
+
+	return httpClient.Do(req)
+}
+
 func HttpGet(httpClient IHttpClient, fullURL string, headers map[string]string) (*http.Response, error) {
 
 	req, err := http.NewRequest("GET", fullURL, nil)
@@ -55,7 +67,7 @@ func HttpPost(httpClient IHttpClient, fullURL string, headers map[string]string,
 }
 
 func setHeaders(req *http.Request, headers map[string]string) {
-	if len(headers) > 0 { // might be nil
+	if headers != nil && len(headers) > 0 {
 		for k, v := range headers {
 			req.Header.Set(k, v)
 		}
