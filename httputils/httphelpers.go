@@ -10,7 +10,7 @@ import (
 	"strings"
 	"sync"
 )
-type HttpClient interface {
+type IHttpClient interface {
 	Do(req *http.Request) (*http.Response, error)
 }
 
@@ -22,7 +22,7 @@ func JSONDecoder(origin string) *json.Decoder {
 	return dec
 }
 
-func HttpDelete(httpClient HttpClient, fullURL string, headers map[string]string) (*http.Response, error) {
+func HttpDelete(httpClient IHttpClient, fullURL string, headers map[string]string) (*http.Response, error) {
 
 	req, err := http.NewRequest("DELETE", fullURL, nil)
 	if err != nil {
@@ -32,7 +32,7 @@ func HttpDelete(httpClient HttpClient, fullURL string, headers map[string]string
 
 	return httpClient.Do(req)
 }
-func HttpGet(httpClient HttpClient, fullURL string, headers map[string]string) (*http.Response, error) {
+func HttpGet(httpClient IHttpClient, fullURL string, headers map[string]string) (*http.Response, error) {
 
 	req, err := http.NewRequest("GET", fullURL, nil)
 	if err != nil {
@@ -43,7 +43,7 @@ func HttpGet(httpClient HttpClient, fullURL string, headers map[string]string) (
 	return httpClient.Do(req)
 }
 
-func HttpPost(httpClient HttpClient, fullURL string, headers map[string]string, body []byte) (*http.Response, error) {
+func HttpPost(httpClient IHttpClient, fullURL string, headers map[string]string, body []byte) (*http.Response, error) {
 
 	req, err := http.NewRequest("POST", fullURL, bytes.NewReader(body))
 	if err != nil {
