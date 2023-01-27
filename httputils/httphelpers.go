@@ -2,6 +2,7 @@ package httputils
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -10,10 +11,10 @@ import (
 	"strings"
 	"sync"
 )
+
 type IHttpClient interface {
 	Do(req *http.Request) (*http.Response, error)
 }
-
 
 // JSONDecoder returns JSON decoder for given string
 func JSONDecoder(origin string) *json.Decoder {
@@ -23,8 +24,11 @@ func JSONDecoder(origin string) *json.Decoder {
 }
 
 func HttpDelete(httpClient IHttpClient, fullURL string, headers map[string]string) (*http.Response, error) {
+	return HttpDeleteWithContext(context.Background(), httpClient, fullURL, headers)
+}
 
-	req, err := http.NewRequest("DELETE", fullURL, nil)
+func HttpDeleteWithContext(ctx context.Context, httpClient IHttpClient, fullURL string, headers map[string]string) (*http.Response, error) {
+	req, err := http.NewRequestWithContext(ctx, "DELETE", fullURL, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -34,8 +38,11 @@ func HttpDelete(httpClient IHttpClient, fullURL string, headers map[string]strin
 }
 
 func HttpHead(httpClient IHttpClient, fullURL string, headers map[string]string) (*http.Response, error) {
+	return HttpHeadWithContext(context.Background(), httpClient, fullURL, headers)
+}
 
-	req, err := http.NewRequest("HEAD", fullURL, nil)
+func HttpHeadWithContext(ctx context.Context, httpClient IHttpClient, fullURL string, headers map[string]string) (*http.Response, error) {
+	req, err := http.NewRequestWithContext(ctx, "HEAD", fullURL, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -45,8 +52,11 @@ func HttpHead(httpClient IHttpClient, fullURL string, headers map[string]string)
 }
 
 func HttpGet(httpClient IHttpClient, fullURL string, headers map[string]string) (*http.Response, error) {
+	return HttpGetWithContext(context.Background(), httpClient, fullURL, headers)
+}
 
-	req, err := http.NewRequest("GET", fullURL, nil)
+func HttpGetWithContext(ctx context.Context, httpClient IHttpClient, fullURL string, headers map[string]string) (*http.Response, error) {
+	req, err := http.NewRequestWithContext(ctx, "GET", fullURL, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -56,8 +66,11 @@ func HttpGet(httpClient IHttpClient, fullURL string, headers map[string]string) 
 }
 
 func HttpPost(httpClient IHttpClient, fullURL string, headers map[string]string, body []byte) (*http.Response, error) {
+	return HttpPostWithContext(context.Background(), httpClient, fullURL, headers, body)
+}
 
-	req, err := http.NewRequest("POST", fullURL, bytes.NewReader(body))
+func HttpPostWithContext(ctx context.Context, httpClient IHttpClient, fullURL string, headers map[string]string, body []byte) (*http.Response, error) {
+	req, err := http.NewRequestWithContext(ctx, "POST", fullURL, bytes.NewReader(body))
 	if err != nil {
 		return nil, err
 	}
@@ -105,13 +118,13 @@ func HttpRespToString(resp *http.Response) (string, error) {
 	return respStr, err
 }
 
-//SplitSlice2Chunks - *recursively* splits a slice to chunks of sub slices that do not exceed max bytes size
-//Returns a channels for receiving []T chunks and the original len of []T
-//If []T is empty the function will return a closed chunks channel
-//Chunks might be bigger than max size if the slice contains element(s) that are bigger than the max size
-//this split algorithm fits for slices with elements that share more or less the same size per element
-//uses optimistic average size splitting to enhance performance and reduce the use of json encoding for size calculations
-//chunks channel will be closed after splitting is done
+// SplitSlice2Chunks - *recursively* splits a slice to chunks of sub slices that do not exceed max bytes size
+// Returns a channels for receiving []T chunks and the original len of []T
+// If []T is empty the function will return a closed chunks channel
+// Chunks might be bigger than max size if the slice contains element(s) that are bigger than the max size
+// this split algorithm fits for slices with elements that share more or less the same size per element
+// uses optimistic average size splitting to enhance performance and reduce the use of json encoding for size calculations
+// chunks channel will be closed after splitting is done
 func SplitSlice2Chunks[T any](slice []T, maxSize int, channelBuffer int) (chunksChannel <-chan []T, sliceSize int) {
 	channel := make(chan []T, channelBuffer)
 	sliceSize = len(slice)
@@ -168,7 +181,7 @@ func splitSlice2Chunks[T any](slice []T, maxSize int, chunks chan<- []T, wg *syn
 	}(slice, maxSize, chunks, wg)
 }
 
-//jsonSize returns the size in bytes of the json encoding of i
+// jsonSize returns the size in bytes of the json encoding of i
 func JSONSize(i interface{}) int {
 	if i == nil {
 		return 0
@@ -179,7 +192,7 @@ func JSONSize(i interface{}) int {
 	return counter.count
 }
 
-//bytesCounter - dummy io writer that just counts bytes without writing
+// bytesCounter - dummy io writer that just counts bytes without writing
 type bytesCounter struct {
 	count int
 }
