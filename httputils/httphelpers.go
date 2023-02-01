@@ -118,6 +118,23 @@ func HttpRespToString(resp *http.Response) (string, error) {
 	return respStr, err
 }
 
+func Split2Chunks[T any](maxNumOfChunks int, slice []T) [][]T {
+	var divided [][]T
+	if len(slice) <= maxNumOfChunks {
+		for _, v := range slice {
+			divided = append(divided, []T{v})
+		}
+		return divided
+	}
+
+	for i := 0; i < maxNumOfChunks; i++ {
+		min := (i * len(slice) / maxNumOfChunks)
+		max := ((i + 1) * len(slice)) / maxNumOfChunks
+		divided = append(divided, slice[min:max])
+	}
+	return divided
+}
+
 // SplitSlice2Chunks - *recursively* splits a slice to chunks of sub slices that do not exceed max bytes size
 // Returns a channels for receiving []T chunks and the original len of []T
 // If []T is empty the function will return a closed chunks channel
