@@ -3,6 +3,7 @@ package httputils
 import (
 	"fmt"
 	"net/http"
+	"reflect"
 	"sync"
 	"testing"
 
@@ -166,5 +167,51 @@ func TestSplitSlice2Chunks(t *testing.T) {
 	assert.Equal(t, 77, minChunkSize, "minChunkSize must be same as expected minChunkSize")
 	assert.Equal(t, 89, maxChunkSize, "maxChunkSize must be same as expected maxChunkSize")
 	assert.Equal(t, 11, numOfChunks, "numOfChunks must be same as expected numOfChunks")
+
+}
+
+func TestSplit2Chunks(t *testing.T) {
+	type args struct {
+		maxNumOfChunks int
+		slice          []string
+	}
+	tests := []struct {
+		name string
+		args args
+		want [][]string
+	}{
+		{
+			name: "TestSplit2Chunks1",
+			args: args{
+				maxNumOfChunks: 3,
+				slice:          []string{"a", "b", "c", "d", "e", "f", "g", "h", "i", "j"},
+			},
+			want: [][]string{{"a", "b", "c"}, {"d", "e", "f"}, {"g", "h", "i", "j"}},
+		},
+		{
+			name: "TestSplit2Chunks2",
+			args: args{
+				maxNumOfChunks: 10,
+				slice:          []string{"a", "b", "c", "d", "e", "f", "g", "h", "i", "j"},
+			},
+			want: [][]string{{"a"}, {"b"}, {"c"}, {"d"}, {"e"}, {"f"}, {"g"}, {"h"}, {"i"}, {"j"}},
+		},
+		{
+			name: "TestSplit2Chunks3",
+
+			args: args{
+				maxNumOfChunks: 1,
+				slice:          []string{"a", "b", "c", "d", "e", "f", "g", "h", "i", "j"},
+			},
+			want: [][]string{{"a", "b", "c", "d", "e", "f", "g", "h", "i", "j"}},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := Split2Chunks(tt.args.maxNumOfChunks, tt.args.slice); !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("Split2Chunks() = %v, want %v", got, tt.want)
+			}
+		})
+	}
 
 }
