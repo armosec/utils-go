@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"math"
 	"net/http"
 	"strings"
 	"sync"
@@ -87,13 +86,15 @@ func setHeaders(req *http.Request, headers map[string]string) {
 	}
 }
 
-// HTTPRespToString parses the body as string and checks the HTTP status code, it closes the body reader at the end
+// HttpRespToString parses the body as string and checks the HTTP status code, it closes the body reader at the end
 func HttpRespToString(resp *http.Response) (string, error) {
 	if resp == nil || resp.Body == nil {
 		return "", nil
 	}
 	strBuilder := strings.Builder{}
-	defer resp.Body.Close()
+	defer func(Body io.ReadCloser) {
+		_ = Body.Close()
+	}(resp.Body)
 	if resp.ContentLength > 0 {
 		strBuilder.Grow(int(resp.ContentLength))
 	}
@@ -176,36 +177,32 @@ func splitSlice2Chunks[T any](slice []T, maxSize int, chunks chan<- []T, wg *syn
 			return
 		}
 		//slice is bigger than max size
-		//calculate the average size + 5% of a single element T
-		avgTSize := int(math.Round(float64(jsonSize) * 1.05 / float64(len(slice))))
-		//calculate the average number of elements that will not exceed max size
-		avgSliceSize := maxSize / avgTSize
-		last := len(slice)
-		if avgSliceSize >= last {
-			avgSliceSize = last / 2
-		} else if avgSliceSize < 1 {
-			avgSliceSize = 1
-		}
-
-		//split the slice to slices of avgSliceSize size
-		startIndex := 0
-		for i := avgSliceSize; i < last; i += avgSliceSize {
-			splitSlice2Chunks(slice[startIndex:i], maxSize, chunks, wg)
-			startIndex = i
+		//split the slice to slices smaller than max size
+		index := 0
+		for i := 1; i < len(slice); i++ {
+			jsonSize = JSONSize(slice[index:i])
+			if jsonSize > maxSize {
+				//send the part of the slice that is smaller than max size
+				splitSlice2Chunks(slice[index:i-1], maxSize, chunks, wg)
+				index = i - 1
+			}
 		}
 		//send the last part of the slice
-		splitSlice2Chunks(slice[startIndex:last], maxSize, chunks, wg)
+		splitSlice2Chunks(slice[index:], maxSize, chunks, wg)
 	}(slice, maxSize, chunks, wg)
 }
 
-// jsonSize returns the size in bytes of the json encoding of i
+// JSONSize returns the size in bytes of the json encoding of i
 func JSONSize(i interface{}) int {
 	if i == nil {
 		return 0
 	}
 	counter := bytesCounter{}
 	enc := json.NewEncoder(&counter)
-	enc.Encode(i)
+	err := enc.Encode(i)
+	if err != nil {
+		return 0
+	}
 	return counter.count
 }
 

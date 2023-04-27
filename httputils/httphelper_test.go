@@ -103,7 +103,7 @@ func TestSplitSlice2Chunks(t *testing.T) {
 			Name: "CVE-2006-1611",
 		},
 		{
-			Name: "CVE-2017-18589",
+			Name: "This is a very long CVE name to test sizes and make sure we don't exceed max size",
 		},
 		{
 			Name: "CVE-2019-10743",
@@ -132,7 +132,8 @@ func TestSplitSlice2Chunks(t *testing.T) {
 	}
 
 	//split splice to chunks
-	chunksChan, totalTestTypes := SplitSlice2Chunks(testTypeSlice, 100, 10)
+	maxSize := 100
+	chunksChan, totalTestTypes := SplitSlice2Chunks(testTypeSlice, maxSize, 10)
 	testWg := sync.WaitGroup{}
 	var totalReceived, numOfChunks, maxChunkSize, minChunkSize, maxChunkLength, minChunkLength int
 	testWg.Add(1)
@@ -144,6 +145,9 @@ func TestSplitSlice2Chunks(t *testing.T) {
 			vSize := JSONSize(v)
 			vLen := len(v)
 			totalReceived += vLen
+			if vSize > maxSize {
+				t.Errorf("chunk size %d is more than expected max size %d", vSize, maxSize)
+			}
 			if maxChunkSize < vSize {
 				maxChunkSize = vSize
 			}
@@ -162,11 +166,11 @@ func TestSplitSlice2Chunks(t *testing.T) {
 	testWg.Wait()
 	//compare with expected
 	assert.Equal(t, totalTestTypes, totalReceived, "total elements received is not equal to number of element sent")
-	assert.Equal(t, 3, minChunkLength, "minChunkLength must be same as expected minChunkLength")
+	assert.Equal(t, 1, minChunkLength, "minChunkLength must be same as expected minChunkLength")
 	assert.Equal(t, 3, maxChunkLength, "maxChunkLength must be same as expected maxChunkLength")
-	assert.Equal(t, 77, minChunkSize, "minChunkSize must be same as expected minChunkSize")
-	assert.Equal(t, 89, maxChunkSize, "maxChunkSize must be same as expected maxChunkSize")
-	assert.Equal(t, 11, numOfChunks, "numOfChunks must be same as expected numOfChunks")
+	assert.Equal(t, 64, minChunkSize, "minChunkSize must be same as expected minChunkSize")
+	assert.Equal(t, 95, maxChunkSize, "maxChunkSize must be same as expected maxChunkSize")
+	assert.Equal(t, 12, numOfChunks, "numOfChunks must be same as expected numOfChunks")
 
 }
 
