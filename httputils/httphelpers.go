@@ -179,12 +179,12 @@ func splitSlice2Chunks[T any](slice []T, maxSize int, chunks chan<- []T, wg *syn
 		//slice is bigger than max size
 		//split the slice to slices smaller than max size
 		index := 0
-		for i := 1; i < len(slice); i++ {
-			jsonSize = JSONSize(slice[index:i])
+		for i, _ := range slice {
+			jsonSize = JSONSize(slice[index : i+1])
 			if jsonSize > maxSize {
 				//send the part of the slice that is smaller than max size
-				splitSlice2Chunks(slice[index:i-1], maxSize, chunks, wg)
-				index = i - 1
+				splitSlice2Chunks(slice[index:i], maxSize, chunks, wg)
+				index = i
 			}
 		}
 		//send the last part of the slice
