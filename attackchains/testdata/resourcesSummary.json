@@ -1,0 +1,79 @@
+{
+    "designators": {
+        "designatorType": "",
+        "attributes": {
+            "apiVersion": "apps/v1",
+            "cluster": "eran-l8ccr-aks",
+            "customerGUID": "1e3a88bf-92ce-44f8-914e-cbe71830d566",
+            "kind": "Deployment",
+            "name": "nginx",
+            "namespace": "systest-ns-076p"
+        }
+    },
+    "name": "wlid://cluster-eran-l8ccr-aks/namespace-systest-ns-076p/Deployment-nginx",
+    "resourceID": "apps/v1/systest-ns-076p/Deployment/nginx",
+    "failedControls": [
+        "control1",
+        "control2"
+    ],
+    "warningControls": null,
+    "skippedControls": [
+    ],
+    "statusToControls": {
+        "failed": [
+            "control1",
+            "control2"
+        ],
+        "passed": [
+            
+        ],
+        "skipped": [
+           
+        ]
+    },
+    "failedControlsCount": 2,
+    "skippedControlsCount": 0,
+    "warningControlsCount": 0,
+    "status": 3,
+    "statusText": "failed",
+    "resourceKind": "Deployment",
+    "frameworkName": "security",
+    "exceptionRecommendaion": "",
+    "relatedExceptions": [],
+    "exceptionApplied": [],
+    "containers": [
+        {
+            "containerName": "nginx",
+            "image": "nginx@sha256:aa0afebbb3cfa473099a62c4b32e9b3fb73ed23f2a75a65ce1d4b4f55a5c2ef2"
+        }
+    ],
+    "recommendations": [],
+    "timestamp": "2023-06-15T07:53:43.885453942Z",
+    "reportGUID": "02b0bc7c-cdb3-4ee5-ab5d-d098f31ff4c1",
+    "armoBestScore": 0,
+    "controlsInfo": {
+        "failed": [
+            {
+                "id": "control1",
+                "baseScore": 4,
+                "failedResources": 0
+            },
+            {
+                "id": "control2",
+                "baseScore": 2,
+                "failedResources": 0
+            }
+        ],
+        "passed": [
+            
+        ],
+        "skipped": [
+            
+        ]
+    },
+    "criticalSeverityControls": 0,
+    "highSeverityControls": 1,
+    "mediumSeverityControls": 8,
+    "lowSeverityControls": 4,
+    "clusterShortName": "eran-l8ccr-aks"
+}
