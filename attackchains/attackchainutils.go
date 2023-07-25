@@ -6,7 +6,8 @@ import (
 	"time"
 
 	armotypes "github.com/armosec/armoapi-go/armotypes"
-	cscanlib "github.com/armosec/cluster-container-scanner-api/containerscan"
+	cscanlib "github.com/armosec/armoapi-go/containerscan"
+	"github.com/armosec/armoapi-go/identifiers"
 	"github.com/google/uuid"
 	"github.com/kubescape/opa-utils/reporthandling"
 	"github.com/kubescape/opa-utils/reporthandling/attacktrack/v1alpha1"
@@ -97,9 +98,9 @@ func ConvertAttackTrackToAttackChain(attackTrack v1alpha1.IAttackTrack, postureR
 			Description: attackTrack.GetDescription(),
 		},
 		ClusterName:      postureResourceSummary.Designators.Attributes["cluster"],
-		Resource:         armotypes.PortalDesignator{DesignatorType: armotypes.DesignatorAttributes, Attributes: postureResourceSummary.Designators.Attributes}, // Update this with your actual logic
-		AttackChainID:    GenerateAttackChainID(attackTrack, postureResourceSummary),                                                                            // Update this with your actual logic
-		CustomerGUID:     uuid.New().String(),                                                                                                                   // Update this with your actual logic
+		Resource:         identifiers.PortalDesignator{DesignatorType: identifiers.DesignatorAttributes, Attributes: postureResourceSummary.Designators.Attributes}, // Update this with your actual logic
+		AttackChainID:    GenerateAttackChainID(attackTrack, postureResourceSummary),                                                                                // Update this with your actual logic
+		CustomerGUID:     uuid.New().String(),                                                                                                                       // Update this with your actual logic
 		AttackChainNodes: *chainNodes,
 		UIStatus:         &armotypes.AttackChainUIStatus{FirstSeen: time.Now().String()},
 		LatestReportGUID: postureResourceSummary.ReportID,
@@ -141,8 +142,8 @@ func ConvertAttackTrackStepToAttackChainNode(step v1alpha1.IAttackTrackStep) *ar
 		Name:             step.GetName(),
 		Description:      step.GetDescription(),
 		ControlIDs:       controlIDs,
-		Vulnerabilities:  imageVulnerabilities,           // Update this with your actual logic
-		RelatedResources: []armotypes.PortalDesignator{}, // Enrich from PostureReportResultRaw new "RelatedResources" field.
+		Vulnerabilities:  imageVulnerabilities,             // Update this with your actual logic
+		RelatedResources: []identifiers.PortalDesignator{}, // Enrich from PostureReportResultRaw new "RelatedResources" field.
 		NextNodes:        nextNodes,
 	}
 }

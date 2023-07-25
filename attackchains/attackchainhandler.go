@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	armotypes "github.com/armosec/armoapi-go/armotypes"
-	cscanlib "github.com/armosec/cluster-container-scanner-api/containerscan"
+	cscanlib "github.com/armosec/armoapi-go/containerscan"
 	"github.com/kubescape/opa-utils/reporthandling"
 	"github.com/kubescape/opa-utils/reporthandling/attacktrack/v1alpha1"
 )
