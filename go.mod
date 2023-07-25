@@ -3,8 +3,7 @@ module github.com/armosec/utils-go
 go 1.18
 
 require (
-	github.com/armosec/armoapi-go v0.0.205
-	github.com/armosec/cluster-container-scanner-api v0.0.57
+	github.com/armosec/armoapi-go v0.0.207
 	github.com/google/uuid v1.3.0
 	github.com/kubescape/opa-utils v0.0.255
 	github.com/stretchr/testify v1.8.3
@@ -27,6 +26,7 @@ require (
 	github.com/AzureAD/microsoft-authentication-library-for-go v0.7.0 // indirect
 	github.com/OneOfOne/xxhash v1.2.8 // indirect
 	github.com/agnivade/levenshtein v1.0.1 // indirect
+	github.com/armosec/gojay v1.2.15 // indirect
 	github.com/armosec/utils-k8s-go v0.0.12 // indirect
 	github.com/aws/aws-sdk-go-v2 v1.17.3 // indirect
 	github.com/aws/aws-sdk-go-v2/config v1.15.13 // indirect

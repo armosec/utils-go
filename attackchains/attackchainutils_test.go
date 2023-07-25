@@ -4,7 +4,8 @@ import (
 	"testing"
 
 	armotypes "github.com/armosec/armoapi-go/armotypes"
-	cscanlib "github.com/armosec/cluster-container-scanner-api/containerscan"
+	cscanlib "github.com/armosec/armoapi-go/containerscan"
+	"github.com/armosec/armoapi-go/identifiers"
 	"github.com/kubescape/opa-utils/reporthandling"
 	"github.com/kubescape/opa-utils/reporthandling/attacktrack/v1alpha1"
 
@@ -88,12 +89,12 @@ func TestValidateWorkLoadMatch(t *testing.T) {
 		{
 			name: "resource key matches",
 			vul: &cscanlib.CommonContainerScanSummaryResult{
-				Designators: armotypes.PortalDesignator{
+				Designators: identifiers.PortalDesignator{
 					Attributes: map[string]string{"kind": "Deployment", "name": "test", "namespace": "default", "cluster": "minikube"},
 				},
 			},
 			postureResourceSummary: &armotypes.PostureResourceSummary{
-				Designators: armotypes.PortalDesignator{
+				Designators: identifiers.PortalDesignator{
 					Attributes: map[string]string{"kind": "Deployment", "name": "test", "namespace": "default", "cluster": "minikube"},
 				},
 			},
@@ -102,12 +103,12 @@ func TestValidateWorkLoadMatch(t *testing.T) {
 		{
 			name: "resource key does not match",
 			vul: &cscanlib.CommonContainerScanSummaryResult{
-				Designators: armotypes.PortalDesignator{
+				Designators: identifiers.PortalDesignator{
 					Attributes: map[string]string{"kind": "Deployment", "name": "test1", "namespace": "default", "cluster": "minikube"},
 				},
 			},
 			postureResourceSummary: &armotypes.PostureResourceSummary{
-				Designators: armotypes.PortalDesignator{
+				Designators: identifiers.PortalDesignator{
 					Attributes: map[string]string{"kind": "Deployment", "name": "test2", "namespace": "default", "cluster": "minikube"},
 				},
 			},

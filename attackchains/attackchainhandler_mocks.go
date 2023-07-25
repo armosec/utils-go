@@ -6,7 +6,8 @@ import (
 	"strings"
 
 	armotypes "github.com/armosec/armoapi-go/armotypes"
-	cscanlib "github.com/armosec/cluster-container-scanner-api/containerscan"
+	cscanlib "github.com/armosec/armoapi-go/containerscan"
+	"github.com/armosec/armoapi-go/identifiers"
 	"github.com/google/uuid"
 
 	// csscan "github.com/armosec/cluster-container-scanner-api"
@@ -60,7 +61,7 @@ func ControlMock(id string, attackTrackNames []string, baseScore float32, tags [
 // enrichResourceSummaryFromRegoStore - might extend the function on backend for attack-chain purpose.
 func PostureResourcesSummaryMock(attributes map[string]string, failedControlIds []string, warningControlIds []string) *armotypes.PostureResourceSummary {
 	postureResourceSummary := armotypes.PostureResourceSummary{
-		Designators:         armotypes.PortalDesignator{Attributes: attributes},
+		Designators:         identifiers.PortalDesignator{Attributes: attributes},
 		ResourceKind:        attributes["kind"],
 		FailedControl:       failedControlIds,
 		WarningControls:     warningControlIds,
@@ -87,7 +88,7 @@ func CommonContainerScanSummaryResultMock(hasRelevancyData bool, relevantLabel c
 		ImageID:          ImageHash,
 		HasRelevancyData: hasRelevancyData,
 		RelevantLabel:    relevantLabel,
-		Designators: armotypes.PortalDesignator{
+		Designators: identifiers.PortalDesignator{
 			Attributes: attributes,
 		},
 		Vulnerabilities: vuls,

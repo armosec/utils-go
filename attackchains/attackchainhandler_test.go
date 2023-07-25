@@ -3,7 +3,7 @@ package attackchains
 import (
 	"testing"
 
-	"github.com/armosec/cluster-container-scanner-api/containerscan"
+	"github.com/armosec/armoapi-go/containerscan"
 	"github.com/kubescape/opa-utils/reporthandling/attacktrack/v1alpha1"
 	"github.com/stretchr/testify/assert"
 )
