@@ -3,7 +3,7 @@ module github.com/armosec/utils-go
 go 1.18
 
 require (
-	github.com/armosec/armoapi-go v0.0.207
+	github.com/armosec/armoapi-go v0.0.209
 	github.com/google/uuid v1.3.0
 	github.com/kubescape/opa-utils v0.0.255
 	github.com/stretchr/testify v1.8.3
