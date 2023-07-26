@@ -93,9 +93,9 @@ func ConvertAttackTracksToAttackChains(attacktracks []v1alpha1.IAttackTrack, pos
 func ConvertAttackTrackToAttackChain(attackTrack v1alpha1.IAttackTrack, postureResourceSummary *armotypes.PostureResourceSummary) *armotypes.AttackChain {
 	var chainNodes = ConvertAttackTrackStepToAttackChainNode(attackTrack.GetData())
 	return &armotypes.AttackChain{
-		Type: &armotypes.AttackChainType{
-			Name:        attackTrack.GetName(),
-			Description: attackTrack.GetDescription(),
+		Description: attackTrack.GetDescription(),
+		PortalBase: armotypes.PortalBase{
+			Name: attackTrack.GetName(),
 		},
 		ClusterName:      postureResourceSummary.Designators.Attributes["cluster"],
 		Resource:         identifiers.PortalDesignator{DesignatorType: identifiers.DesignatorAttributes, Attributes: postureResourceSummary.Designators.Attributes}, // Update this with your actual logic
