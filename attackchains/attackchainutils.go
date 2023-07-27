@@ -105,17 +105,19 @@ func ConvertAttackTracksToAttackChains(attacktracks []v1alpha1.IAttackTrack, pos
 func ConvertAttackTrackToAttackChain(attackTrack v1alpha1.IAttackTrack, postureResourceSummary *armotypes.PostureResourceSummary) *armotypes.AttackChain {
 	var chainNodes = ConvertAttackTrackStepToAttackChainNode(attackTrack.GetData())
 	return &armotypes.AttackChain{
-		Description: attackTrack.GetDescription(),
-		PortalBase: armotypes.PortalBase{
-			Name: attackTrack.GetName(),
-		},
-		ClusterName:      postureResourceSummary.Designators.Attributes["cluster"],
-		Resource:         identifiers.PortalDesignator{DesignatorType: identifiers.DesignatorAttributes, Attributes: postureResourceSummary.Designators.Attributes}, // Update this with your actual logic
-		AttackChainID:    GenerateAttackChainID(attackTrack, postureResourceSummary),                                                                                // Update this with your actual logic
-		CustomerGUID:     uuid.New().String(),                                                                                                                       // Update this with your actual logic
 		AttackChainNodes: *chainNodes,
-		UIStatus:         &armotypes.AttackChainUIStatus{FirstSeen: time.Now().String()},
-		LatestReportGUID: postureResourceSummary.ReportID,
+		AttackChainConfig: armotypes.AttackChainConfig{
+			Description: attackTrack.GetDescription(),
+			PortalBase: armotypes.PortalBase{
+				Name: attackTrack.GetName(),
+			},
+			ClusterName:      postureResourceSummary.Designators.Attributes["cluster"],
+			Resource:         identifiers.PortalDesignator{DesignatorType: identifiers.DesignatorAttributes, Attributes: postureResourceSummary.Designators.Attributes}, // Update this with your actual logic
+			AttackChainID:    GenerateAttackChainID(attackTrack, postureResourceSummary),                                                                                // Update this with your actual logic
+			CustomerGUID:     uuid.New().String(),                                                                                                                       // Update this with your actual logic
+			UIStatus:         &armotypes.AttackChainUIStatus{FirstSeen: time.Now().String()},
+			LatestReportGUID: postureResourceSummary.ReportID,
+		},
 	}
 }
 
