@@ -154,21 +154,39 @@ func (h *AttackChainsEngine) DetectAllAttackChainsFromLists(postureResourceSumma
 	var attackChains []*armotypes.AttackChain
 
 	for i := range postureResourceSummaries {
-		attackTracks, err := h.DetectAllAttackChains(postureResourceSummaries[i], vuls[i])
-		if err != nil {
-			return nil, err
+		for j := range vuls {
+			if h.workLoadMatch(postureResourceSummaries[i], vuls[j]) {
+				attackTracks, err := h.DetectAllAttackChains(postureResourceSummaries[i], vuls[j])
+				if err != nil {
+					return nil, err
+				}
+
+				if len(attackTracks) == 0 {
+					continue
+				}
+
+				currentAttackChains := ConvertAttackTracksToAttackChains(attackTracks, postureResourceSummaries[i])
+
+				attackChains = append(attackChains, currentAttackChains...)
+			}
 		}
-
-		if len(attackTracks) == 0 {
-			continue
-		}
-
-		currentAttackChains := ConvertAttackTracksToAttackChains(attackTracks, postureResourceSummaries[i])
-
-		attackChains = append(attackChains, currentAttackChains...)
 	}
 
 	return attackChains, nil
+}
+
+func (h *AttackChainsEngine) workLoadMatch(postureResourceSummary *armotypes.PostureResourceSummary, vul *cscanlib.CommonContainerScanSummaryResult) bool {
+	prsAttributes := postureResourceSummary.Designators.Attributes
+	vulAttributes := vul.Designators.Attributes
+	// check that all these fields match:
+	// cluster, namespace, kind, name
+	if prsAttributes["kind"] == vulAttributes["kind"] &&
+		prsAttributes["name"] == vulAttributes["name"] &&
+		prsAttributes["namespace"] == vulAttributes["namespace"] &&
+		prsAttributes["cluster"] == vulAttributes["cluster"] {
+		return true
+	}
+	return false
 }
 
 // GetAttackTrack - Returns all the attack tracks
