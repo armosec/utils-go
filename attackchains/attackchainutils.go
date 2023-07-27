@@ -65,7 +65,19 @@ func convertVulToControl(vul *cscanlib.CommonContainerScanSummaryResult, tags []
 
 // isVulnarableRelevantToAttackChain checks if the vulnarability is relevant to the attack chain
 func isVulnarableRelevantToAttackChain(vul *cscanlib.CommonContainerScanSummaryResult) bool {
-	return (!vul.HasRelevancyData || (vul.HasRelevancyData && vul.RelevantLabel == "yes")) && vul.Severity == "Critical"
+	// validate relevancy
+	if !vul.HasRelevancyData || (vul.HasRelevancyData && vul.RelevantLabel == "yes") {
+		//validate severity
+		if vul.Severity == "Critical" {
+			return true
+		}
+		for _, stat := range vul.SeveritiesStats {
+			if stat.Severity == "Critical" && stat.TotalCount > 0 {
+				return true
+			}
+		}
+	}
+	return false
 }
 
 // validateWorkLoadMatch checks if the vulnarability and the posture resource summary are of the same workload
