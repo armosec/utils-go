@@ -116,11 +116,6 @@ func (h *AttackChainsEngine) DetectAllAttackChains(postureResourceSummary *armot
 		return nil, nil
 	}
 
-	// validate that the vulnarable image matches to the postureResourceSummary
-	if ok, err := validateWorkLoadMatch(vul, postureResourceSummary); !ok {
-		return nil, err
-	}
-
 	// Get all the attack tracks, return error if failed
 	attackTracks, err := h.GetAttackTrack()
 	if err != nil {
@@ -155,7 +150,9 @@ func (h *AttackChainsEngine) DetectAllAttackChainsFromLists(postureResourceSumma
 
 	for i := range postureResourceSummaries {
 		for j := range vuls {
-			if h.workLoadMatch(postureResourceSummaries[i], vuls[j]) {
+			// validate that the vulnarable image matches to the postureResourceSummary}
+			// ignoring the error, if they don't match they won't create an attack chain
+			if ok, _ := validateWorkLoadMatch(vuls[j], postureResourceSummaries[i]); ok {
 				attackTracks, err := h.DetectAllAttackChains(postureResourceSummaries[i], vuls[j])
 				if err != nil {
 					return nil, err
@@ -173,20 +170,6 @@ func (h *AttackChainsEngine) DetectAllAttackChainsFromLists(postureResourceSumma
 	}
 
 	return attackChains, nil
-}
-
-func (h *AttackChainsEngine) workLoadMatch(postureResourceSummary *armotypes.PostureResourceSummary, vul *cscanlib.CommonContainerScanSummaryResult) bool {
-	prsAttributes := postureResourceSummary.Designators.Attributes
-	vulAttributes := vul.Designators.Attributes
-	// check that all these fields match:
-	// cluster, namespace, kind, name
-	if prsAttributes["kind"] == vulAttributes["kind"] &&
-		prsAttributes["name"] == vulAttributes["name"] &&
-		prsAttributes["namespace"] == vulAttributes["namespace"] &&
-		prsAttributes["cluster"] == vulAttributes["cluster"] {
-		return true
-	}
-	return false
 }
 
 // GetAttackTrack - Returns all the attack tracks
