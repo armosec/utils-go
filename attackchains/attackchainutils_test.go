@@ -181,3 +181,63 @@ func TestConvertAttackTrackStepToAttackChainNode(t *testing.T) {
 		})
 	}
 }
+
+func TestGenerateAttackChainID(t *testing.T) {
+	// Test cases
+	testCases := []struct {
+		name                  string
+		attackTrackName       string
+		cluster               string
+		apiVersion            string
+		namespace             string
+		kind                  string
+		resourceName          string
+		expectedAttackChainID string
+	}{
+		{
+			name:                  "Test case 1",
+			attackTrackName:       "service-destruction",
+			cluster:               "cluster1",
+			apiVersion:            "v1",
+			namespace:             "default",
+			kind:                  "Deployment",
+			resourceName:          "my-deployment",
+			expectedAttackChainID: "1470038906",
+		},
+		{
+			name:                  "Test case 1",
+			attackTrackName:       "workload-external-track",
+			cluster:               "cluster2",
+			apiVersion:            "v1",
+			namespace:             "default",
+			kind:                  "Pod",
+			resourceName:          "my-pod",
+			expectedAttackChainID: "2732723593",
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			// Create a mock postureResourceSummary for testing
+			mockResourceSummary := &armotypes.PostureResourceSummary{
+				Designators: identifiers.PortalDesignator{
+					Attributes: map[string]string{
+						"cluster":    tc.cluster,
+						"apiVersion": tc.apiVersion,
+						"namespace":  tc.namespace,
+						"kind":       tc.kind,
+						"name":       tc.resourceName,
+					},
+				},
+			}
+
+			// Create a mock attackTrack for testing
+			mockAttackTrack := v1alpha1.AttackTrack{}
+			// Call the function to get the actual attackChainID
+			actualAttackChainID := GenerateAttackChainID(&mockAttackTrack, mockResourceSummary)
+
+			// Check if the actual value matches the expected value
+			assert.Equal(t, tc.expectedAttackChainID, actualAttackChainID)
+		})
+	}
+}
