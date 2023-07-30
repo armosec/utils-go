@@ -116,11 +116,6 @@ func (h *AttackChainsEngine) DetectAllAttackChains(postureResourceSummary *armot
 		return nil, nil
 	}
 
-	// validate that the vulnarable image matches to the postureResourceSummary
-	if ok, err := validateWorkLoadMatch(vul, postureResourceSummary); !ok {
-		return nil, err
-	}
-
 	// Get all the attack tracks, return error if failed
 	attackTracks, err := h.GetAttackTrack()
 	if err != nil {
@@ -154,18 +149,24 @@ func (h *AttackChainsEngine) DetectAllAttackChainsFromLists(postureResourceSumma
 	var attackChains []*armotypes.AttackChain
 
 	for i := range postureResourceSummaries {
-		attackTracks, err := h.DetectAllAttackChains(postureResourceSummaries[i], vuls[i])
-		if err != nil {
-			return nil, err
+		for j := range vuls {
+			// validate that the vulnarable image matches to the postureResourceSummary}
+			// ignoring the error, if they don't match they won't create an attack chain
+			if validateWorkLoadMatch(postureResourceSummaries[i], vuls[j]) {
+				attackTracks, err := h.DetectAllAttackChains(postureResourceSummaries[i], vuls[j])
+				if err != nil {
+					return nil, err
+				}
+
+				if len(attackTracks) == 0 {
+					continue
+				}
+
+				currentAttackChains := ConvertAttackTracksToAttackChains(attackTracks, postureResourceSummaries[i])
+
+				attackChains = append(attackChains, currentAttackChains...)
+			}
 		}
-
-		if len(attackTracks) == 0 {
-			continue
-		}
-
-		currentAttackChains := ConvertAttackTracksToAttackChains(attackTracks, postureResourceSummaries[i])
-
-		attackChains = append(attackChains, currentAttackChains...)
 	}
 
 	return attackChains, nil

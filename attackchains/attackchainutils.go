@@ -1,13 +1,13 @@
 package attackchains
 
 import (
-	"fmt"
 	"strings"
 	"time"
 
 	armotypes "github.com/armosec/armoapi-go/armotypes"
 	cscanlib "github.com/armosec/armoapi-go/containerscan"
 	"github.com/armosec/armoapi-go/identifiers"
+	"github.com/armosec/utils-go/str"
 	"github.com/google/uuid"
 	"github.com/kubescape/opa-utils/reporthandling"
 	"github.com/kubescape/opa-utils/reporthandling/attacktrack/v1alpha1"
@@ -65,20 +65,34 @@ func convertVulToControl(vul *cscanlib.CommonContainerScanSummaryResult, tags []
 
 // isVulnarableRelevantToAttackChain checks if the vulnarability is relevant to the attack chain
 func isVulnarableRelevantToAttackChain(vul *cscanlib.CommonContainerScanSummaryResult) bool {
-	return (!vul.HasRelevancyData || (vul.HasRelevancyData && vul.RelevantLabel == "yes")) && vul.Severity == "Critical"
+	// validate relevancy
+	if !vul.HasRelevancyData || (vul.HasRelevancyData && vul.RelevantLabel == "yes") {
+		//validate severity
+		if vul.Severity == "Critical" {
+			return true
+		}
+		for _, stat := range vul.SeveritiesStats {
+			if stat.Severity == "Critical" && stat.TotalCount > 0 {
+				return true
+			}
+		}
+	}
+	return false
 }
 
 // validateWorkLoadMatch checks if the vulnarability and the posture resource summary are of the same workload
-func validateWorkLoadMatch(vul *cscanlib.CommonContainerScanSummaryResult, postureResourceSummary *armotypes.PostureResourceSummary) (bool, error) {
-
-	vulResourceID := vul.Designators.Attributes["cluster"] + "_" + vul.Designators.Attributes["kind"] + "_" + vul.Designators.Attributes["namespace"] + "_" + vul.Designators.Attributes["name"]
-	postureResourceSummaryResourceID := postureResourceSummary.Designators.Attributes["cluster"] + "_" + postureResourceSummary.Designators.Attributes["kind"] + "_" + postureResourceSummary.Designators.Attributes["namespace"] + "_" + postureResourceSummary.Designators.Attributes["name"]
-
-	if vulResourceID != postureResourceSummaryResourceID {
-		return false, fmt.Errorf("vul resource id %s does not match posture resource id %s", vulResourceID, postureResourceSummaryResourceID)
+func validateWorkLoadMatch(postureResourceSummary *armotypes.PostureResourceSummary, vul *cscanlib.CommonContainerScanSummaryResult) bool {
+	prsAttributes := postureResourceSummary.Designators.Attributes
+	vulAttributes := vul.Designators.Attributes
+	// check that all these fields match:
+	// cluster, namespace, kind, name
+	if prsAttributes["kind"] == vulAttributes["kind"] &&
+		prsAttributes["name"] == vulAttributes["name"] &&
+		prsAttributes["namespace"] == vulAttributes["namespace"] &&
+		prsAttributes["cluster"] == vulAttributes["cluster"] {
+		return true
 	}
-
-	return true, nil
+	return false
 }
 
 func ConvertAttackTracksToAttackChains(attacktracks []v1alpha1.IAttackTrack, postureResourceSummary *armotypes.PostureResourceSummary) []*armotypes.AttackChain {
@@ -93,17 +107,19 @@ func ConvertAttackTracksToAttackChains(attacktracks []v1alpha1.IAttackTrack, pos
 func ConvertAttackTrackToAttackChain(attackTrack v1alpha1.IAttackTrack, postureResourceSummary *armotypes.PostureResourceSummary) *armotypes.AttackChain {
 	var chainNodes = ConvertAttackTrackStepToAttackChainNode(attackTrack.GetData())
 	return &armotypes.AttackChain{
-		Description: attackTrack.GetDescription(),
-		PortalBase: armotypes.PortalBase{
-			Name: attackTrack.GetName(),
-		},
-		ClusterName:      postureResourceSummary.Designators.Attributes["cluster"],
-		Resource:         identifiers.PortalDesignator{DesignatorType: identifiers.DesignatorAttributes, Attributes: postureResourceSummary.Designators.Attributes}, // Update this with your actual logic
-		AttackChainID:    GenerateAttackChainID(attackTrack, postureResourceSummary),                                                                                // Update this with your actual logic
-		CustomerGUID:     uuid.New().String(),                                                                                                                       // Update this with your actual logic
 		AttackChainNodes: *chainNodes,
-		UIStatus:         &armotypes.AttackChainUIStatus{FirstSeen: time.Now().String()},
-		LatestReportGUID: postureResourceSummary.ReportID,
+		AttackChainConfig: armotypes.AttackChainConfig{
+			Description: attackTrack.GetDescription(),
+			PortalBase: armotypes.PortalBase{
+				Name: attackTrack.GetName(),
+			},
+			ClusterName:      postureResourceSummary.Designators.Attributes["cluster"],
+			Resource:         identifiers.PortalDesignator{DesignatorType: identifiers.DesignatorAttributes, Attributes: postureResourceSummary.Designators.Attributes}, // Update this with your actual logic
+			AttackChainID:    GenerateAttackChainID(attackTrack, postureResourceSummary),                                                                                // Update this with your actual logic
+			CustomerGUID:     uuid.New().String(),                                                                                                                       // Update this with your actual logic
+			UIStatus:         &armotypes.AttackChainUIStatus{FirstSeen: time.Now().String()},
+			LatestReportGUID: postureResourceSummary.ReportID,
+		},
 	}
 }
 
@@ -153,5 +169,5 @@ func ConvertAttackTrackStepToAttackChainNode(step v1alpha1.IAttackTrackStep) *ar
 func GenerateAttackChainID(attackTrack v1alpha1.IAttackTrack, postureResourceSummary *armotypes.PostureResourceSummary) string {
 	attributes := postureResourceSummary.Designators.Attributes
 	elements := []string{attackTrack.GetName(), attributes["cluster"], attributes["apiVersion"], attributes["namespace"], attributes["kind"], attributes["name"]}
-	return strings.Join(elements, "/")
+	return str.AsFNVHash(strings.Join(elements, "/"))
 }
