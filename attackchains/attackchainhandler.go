@@ -152,7 +152,7 @@ func (h *AttackChainsEngine) DetectAllAttackChainsFromLists(postureResourceSumma
 		for j := range vuls {
 			// validate that the vulnarable image matches to the postureResourceSummary}
 			// ignoring the error, if they don't match they won't create an attack chain
-			if ok, _ := validateWorkLoadMatch(vuls[j], postureResourceSummaries[i]); ok {
+			if validateWorkLoadMatch(postureResourceSummaries[i], vuls[j]) {
 				attackTracks, err := h.DetectAllAttackChains(postureResourceSummaries[i], vuls[j])
 				if err != nil {
 					return nil, err

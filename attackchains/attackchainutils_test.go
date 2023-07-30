@@ -118,7 +118,7 @@ func TestValidateWorkLoadMatch(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			actual, _ := validateWorkLoadMatch(test.vul, test.postureResourceSummary)
+			actual := validateWorkLoadMatch(test.postureResourceSummary, test.vul)
 			assert.Equal(t, test.expected, actual)
 		})
 	}

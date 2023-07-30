@@ -1,7 +1,6 @@
 package attackchains
 
 import (
-	"fmt"
 	"strings"
 	"time"
 
@@ -82,16 +81,18 @@ func isVulnarableRelevantToAttackChain(vul *cscanlib.CommonContainerScanSummaryR
 }
 
 // validateWorkLoadMatch checks if the vulnarability and the posture resource summary are of the same workload
-func validateWorkLoadMatch(vul *cscanlib.CommonContainerScanSummaryResult, postureResourceSummary *armotypes.PostureResourceSummary) (bool, error) {
-
-	vulResourceID := vul.Designators.Attributes["cluster"] + "_" + vul.Designators.Attributes["kind"] + "_" + vul.Designators.Attributes["namespace"] + "_" + vul.Designators.Attributes["name"]
-	postureResourceSummaryResourceID := postureResourceSummary.Designators.Attributes["cluster"] + "_" + postureResourceSummary.Designators.Attributes["kind"] + "_" + postureResourceSummary.Designators.Attributes["namespace"] + "_" + postureResourceSummary.Designators.Attributes["name"]
-
-	if vulResourceID != postureResourceSummaryResourceID {
-		return false, fmt.Errorf("vul resource id %s does not match posture resource id %s", vulResourceID, postureResourceSummaryResourceID)
+func validateWorkLoadMatch(postureResourceSummary *armotypes.PostureResourceSummary, vul *cscanlib.CommonContainerScanSummaryResult) bool {
+	prsAttributes := postureResourceSummary.Designators.Attributes
+	vulAttributes := vul.Designators.Attributes
+	// check that all these fields match:
+	// cluster, namespace, kind, name
+	if prsAttributes["kind"] == vulAttributes["kind"] &&
+		prsAttributes["name"] == vulAttributes["name"] &&
+		prsAttributes["namespace"] == vulAttributes["namespace"] &&
+		prsAttributes["cluster"] == vulAttributes["cluster"] {
+		return true
 	}
-
-	return true, nil
+	return false
 }
 
 func ConvertAttackTracksToAttackChains(attacktracks []v1alpha1.IAttackTrack, postureResourceSummary *armotypes.PostureResourceSummary) []*armotypes.AttackChain {
