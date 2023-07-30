@@ -8,6 +8,7 @@ import (
 	armotypes "github.com/armosec/armoapi-go/armotypes"
 	cscanlib "github.com/armosec/armoapi-go/containerscan"
 	"github.com/armosec/armoapi-go/identifiers"
+	"github.com/armosec/utils-go/str"
 	"github.com/google/uuid"
 	"github.com/kubescape/opa-utils/reporthandling"
 	"github.com/kubescape/opa-utils/reporthandling/attacktrack/v1alpha1"
@@ -167,5 +168,5 @@ func ConvertAttackTrackStepToAttackChainNode(step v1alpha1.IAttackTrackStep) *ar
 func GenerateAttackChainID(attackTrack v1alpha1.IAttackTrack, postureResourceSummary *armotypes.PostureResourceSummary) string {
 	attributes := postureResourceSummary.Designators.Attributes
 	elements := []string{attackTrack.GetName(), attributes["cluster"], attributes["apiVersion"], attributes["namespace"], attributes["kind"], attributes["name"]}
-	return strings.Join(elements, "/")
+	return str.AsFNVHash(strings.Join(elements, "/"))
 }
