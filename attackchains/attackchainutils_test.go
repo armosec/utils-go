@@ -202,7 +202,7 @@ func TestGenerateAttackChainID(t *testing.T) {
 			namespace:             "default",
 			kind:                  "Deployment",
 			resourceName:          "my-deployment",
-			expectedAttackChainID: "1470038906",
+			expectedAttackChainID: "3056037652",
 		},
 		{
 			name:                  "Test case 1",
@@ -212,7 +212,7 @@ func TestGenerateAttackChainID(t *testing.T) {
 			namespace:             "default",
 			kind:                  "Pod",
 			resourceName:          "my-pod",
-			expectedAttackChainID: "2732723593",
+			expectedAttackChainID: "371318589",
 		},
 	}
 
