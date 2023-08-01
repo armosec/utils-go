@@ -114,9 +114,9 @@ func ConvertAttackTrackToAttackChain(attackTrack v1alpha1.IAttackTrack, attribut
 				Name: attackTrack.GetName(),
 			},
 			ClusterName:      attributes["cluster"],
-			Resource:         identifiers.PortalDesignator{DesignatorType: identifiers.DesignatorAttributes, Attributes: attributes}, // Update this with your actual logic
-			AttackChainID:    GenerateAttackChainID(attackTrack, attributes),                                                         // Update this with your actual logic
-			CustomerGUID:     attributes["customerGUID"],                                                                             // Update this with your actual logic
+			Resource:         identifiers.PortalDesignator{DesignatorType: identifiers.DesignatorAttributes, Attributes: attributes},
+			AttackChainID:    GenerateAttackChainID(attackTrack, attributes),
+			CustomerGUID:     attributes["customerGUID"],
 			UIStatus:         &armotypes.AttackChainUIStatus{FirstSeen: time.Now().String()},
 			LatestReportGUID: reportID,
 		},
