@@ -85,7 +85,7 @@ func (h *AttackChainsEngine) getAttackTrackControlsLookup(postureResourceSummary
 	}
 
 	// If the vulnarable image is relevant to the attack chain, add it as a control
-	if isVulnarableRelevantToAttackChain(vul) {
+	if isVulnerableRelevantToAttackChain(vul) {
 
 		// Convert the vulnarable image to a control structure
 		volAsControl := convertVulToControl(vul, []string{securityFrameworkName}, attackTracks)
@@ -161,8 +161,8 @@ func (h *AttackChainsEngine) DetectAllAttackChainsFromLists(postureResourceSumma
 				if len(attackTracks) == 0 {
 					continue
 				}
-
-				currentAttackChains := ConvertAttackTracksToAttackChains(attackTracks, postureResourceSummaries[i])
+				prsAttributes := postureResourceSummaries[i].Designators.Attributes
+				currentAttackChains := ConvertAttackTracksToAttackChains(attackTracks, prsAttributes, postureResourceSummaries[i].ReportID)
 
 				attackChains = append(attackChains, currentAttackChains...)
 			}

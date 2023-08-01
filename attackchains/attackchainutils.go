@@ -8,7 +8,6 @@ import (
 	cscanlib "github.com/armosec/armoapi-go/containerscan"
 	"github.com/armosec/armoapi-go/identifiers"
 	"github.com/armosec/utils-go/str"
-	"github.com/google/uuid"
 	"github.com/kubescape/opa-utils/reporthandling"
 	"github.com/kubescape/opa-utils/reporthandling/attacktrack/v1alpha1"
 )
@@ -29,7 +28,7 @@ func isSupportedKind(kind string) bool {
 	return false
 }
 
-// convertVulToControl - convert vulnarability to control object. This is done in order to unify the way we handle vulnarabilities and controls when generating the attack chains.
+// convertVulToControl - convert vulnerability to control object. This is done in order to unify the way we handle vulnarabilities and controls when generating the attack chains.
 func convertVulToControl(vul *cscanlib.CommonContainerScanSummaryResult, tags []string, attackTracks []v1alpha1.IAttackTrack) *reporthandling.Control {
 	if vul == nil {
 		return nil
@@ -63,8 +62,8 @@ func convertVulToControl(vul *cscanlib.CommonContainerScanSummaryResult, tags []
 	}
 }
 
-// isVulnarableRelevantToAttackChain checks if the vulnarability is relevant to the attack chain
-func isVulnarableRelevantToAttackChain(vul *cscanlib.CommonContainerScanSummaryResult) bool {
+// isVulnerableRelevantToAttackChain checks if the vulnerability is relevant to the attack chain
+func isVulnerableRelevantToAttackChain(vul *cscanlib.CommonContainerScanSummaryResult) bool {
 	// validate relevancy
 	if !vul.HasRelevancyData || (vul.HasRelevancyData && vul.RelevantLabel == "yes") {
 		//validate severity
@@ -80,31 +79,32 @@ func isVulnarableRelevantToAttackChain(vul *cscanlib.CommonContainerScanSummaryR
 	return false
 }
 
-// validateWorkLoadMatch checks if the vulnarability and the posture resource summary are of the same workload
+// validateWorkLoadMatch checks if the vulnerability and the posture resource summary are of the same workload
 func validateWorkLoadMatch(postureResourceSummary *armotypes.PostureResourceSummary, vul *cscanlib.CommonContainerScanSummaryResult) bool {
 	prsAttributes := postureResourceSummary.Designators.Attributes
 	vulAttributes := vul.Designators.Attributes
 	// check that all these fields match:
 	// cluster, namespace, kind, name
-	if prsAttributes["kind"] == vulAttributes["kind"] &&
-		prsAttributes["name"] == vulAttributes["name"] &&
-		prsAttributes["namespace"] == vulAttributes["namespace"] &&
-		prsAttributes["cluster"] == vulAttributes["cluster"] {
+	// check is case insensitive
+	if strings.ToLower(prsAttributes["kind"]) == strings.ToLower(vulAttributes["kind"]) &&
+		strings.ToLower(prsAttributes["name"]) == strings.ToLower(vulAttributes["name"]) &&
+		strings.ToLower(prsAttributes["namespace"]) == strings.ToLower(vulAttributes["namespace"]) &&
+		strings.ToLower(prsAttributes["cluster"]) == strings.ToLower(vulAttributes["cluster"]) {
 		return true
 	}
 	return false
 }
 
-func ConvertAttackTracksToAttackChains(attacktracks []v1alpha1.IAttackTrack, postureResourceSummary *armotypes.PostureResourceSummary) []*armotypes.AttackChain {
+func ConvertAttackTracksToAttackChains(attacktracks []v1alpha1.IAttackTrack, attributes map[string]string, reportID string) []*armotypes.AttackChain {
 	var attackChains []*armotypes.AttackChain
 	for _, attackTrack := range attacktracks {
-		attackChains = append(attackChains, ConvertAttackTrackToAttackChain(attackTrack, postureResourceSummary))
+		attackChains = append(attackChains, ConvertAttackTrackToAttackChain(attackTrack, attributes, reportID))
 	}
 	return attackChains
 
 }
 
-func ConvertAttackTrackToAttackChain(attackTrack v1alpha1.IAttackTrack, postureResourceSummary *armotypes.PostureResourceSummary) *armotypes.AttackChain {
+func ConvertAttackTrackToAttackChain(attackTrack v1alpha1.IAttackTrack, attributes map[string]string, reportID string) *armotypes.AttackChain {
 	var chainNodes = ConvertAttackTrackStepToAttackChainNode(attackTrack.GetData())
 	return &armotypes.AttackChain{
 		AttackChainNodes: *chainNodes,
@@ -113,12 +113,12 @@ func ConvertAttackTrackToAttackChain(attackTrack v1alpha1.IAttackTrack, postureR
 			PortalBase: armotypes.PortalBase{
 				Name: attackTrack.GetName(),
 			},
-			ClusterName:      postureResourceSummary.Designators.Attributes["cluster"],
-			Resource:         identifiers.PortalDesignator{DesignatorType: identifiers.DesignatorAttributes, Attributes: postureResourceSummary.Designators.Attributes}, // Update this with your actual logic
-			AttackChainID:    GenerateAttackChainID(attackTrack, postureResourceSummary),                                                                                // Update this with your actual logic
-			CustomerGUID:     uuid.New().String(),                                                                                                                       // Update this with your actual logic
+			ClusterName:      attributes["cluster"],
+			Resource:         identifiers.PortalDesignator{DesignatorType: identifiers.DesignatorAttributes, Attributes: attributes},
+			AttackChainID:    GenerateAttackChainID(attackTrack, attributes),
+			CustomerGUID:     attributes["customerGUID"],
 			UIStatus:         &armotypes.AttackChainUIStatus{FirstSeen: time.Now().String()},
-			LatestReportGUID: postureResourceSummary.ReportID,
+			LatestReportGUID: reportID,
 		},
 	}
 }
@@ -166,8 +166,7 @@ func ConvertAttackTrackStepToAttackChainNode(step v1alpha1.IAttackTrackStep) *ar
 
 // GenerateAttackChainID generates attackChainID
 // structure: attackTrackName/cluster/apiVersion/namespace/kind/name
-func GenerateAttackChainID(attackTrack v1alpha1.IAttackTrack, postureResourceSummary *armotypes.PostureResourceSummary) string {
-	attributes := postureResourceSummary.Designators.Attributes
-	elements := []string{attackTrack.GetName(), attributes["cluster"], attributes["apiVersion"], attributes["namespace"], attributes["kind"], attributes["name"]}
+func GenerateAttackChainID(attackTrack v1alpha1.IAttackTrack, attributes map[string]string) string {
+	elements := []string{attackTrack.GetName(), attributes["cluster"], attributes["namespace"], attributes["kind"], attributes["name"]}
 	return str.AsFNVHash(strings.Join(elements, "/"))
 }

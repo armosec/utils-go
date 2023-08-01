@@ -60,7 +60,7 @@ func TestIsVulnarableRelevantToAttackChange(t *testing.T) {
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			actual := isVulnarableRelevantToAttackChain(test.vul)
+			actual := isVulnerableRelevantToAttackChain(test.vul)
 			assert.Equal(t, test.expected, actual)
 		})
 	}
@@ -234,7 +234,7 @@ func TestGenerateAttackChainID(t *testing.T) {
 			// Create a mock attackTrack for testing
 			mockAttackTrack := v1alpha1.AttackTrack{}
 			// Call the function to get the actual attackChainID
-			actualAttackChainID := GenerateAttackChainID(&mockAttackTrack, mockResourceSummary)
+			actualAttackChainID := GenerateAttackChainID(&mockAttackTrack, mockResourceSummary.Designators.Attributes)
 
 			// Check if the actual value matches the expected value
 			assert.Equal(t, tc.expectedAttackChainID, actualAttackChainID)
