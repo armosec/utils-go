@@ -168,6 +168,6 @@ func ConvertAttackTrackStepToAttackChainNode(step v1alpha1.IAttackTrackStep) *ar
 // structure: attackTrackName/cluster/apiVersion/namespace/kind/name
 func GenerateAttackChainID(attackTrack v1alpha1.IAttackTrack, postureResourceSummary *armotypes.PostureResourceSummary) string {
 	attributes := postureResourceSummary.Designators.Attributes
-	elements := []string{attackTrack.GetName(), attributes["cluster"], attributes["apiVersion"], attributes["namespace"], attributes["kind"], attributes["name"]}
+	elements := []string{attackTrack.GetName(), attributes["cluster"], attributes["namespace"], attributes["kind"], attributes["name"]}
 	return str.AsFNVHash(strings.Join(elements, "/"))
 }
