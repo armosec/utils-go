@@ -95,16 +95,16 @@ func validateWorkLoadMatch(postureResourceSummary *armotypes.PostureResourceSumm
 	return false
 }
 
-func ConvertAttackTracksToAttackChains(attacktracks []v1alpha1.IAttackTrack, attributes map[string]string, reportID string) []*armotypes.AttackChain {
+func ConvertAttackTracksToAttackChains(attacktracks []v1alpha1.IAttackTrack, attributes map[string]string, resourceID, reportID string) []*armotypes.AttackChain {
 	var attackChains []*armotypes.AttackChain
 	for _, attackTrack := range attacktracks {
-		attackChains = append(attackChains, ConvertAttackTrackToAttackChain(attackTrack, attributes, reportID))
+		attackChains = append(attackChains, ConvertAttackTrackToAttackChain(attackTrack, attributes, resourceID, reportID))
 	}
 	return attackChains
 
 }
 
-func ConvertAttackTrackToAttackChain(attackTrack v1alpha1.IAttackTrack, attributes map[string]string, reportID string) *armotypes.AttackChain {
+func ConvertAttackTrackToAttackChain(attackTrack v1alpha1.IAttackTrack, attributes map[string]string, resourceID, reportID string) *armotypes.AttackChain {
 	var chainNodes = ConvertAttackTrackStepToAttackChainNode(attackTrack.GetData())
 	return &armotypes.AttackChain{
 		AttackChainNodes: *chainNodes,
@@ -113,14 +113,19 @@ func ConvertAttackTrackToAttackChain(attackTrack v1alpha1.IAttackTrack, attribut
 			PortalBase: armotypes.PortalBase{
 				Name: attackTrack.GetName(),
 			},
-			ClusterName:      attributes["cluster"],
-			Resource:         identifiers.PortalDesignator{DesignatorType: identifiers.DesignatorAttributes, Attributes: attributes},
+			ClusterName:      attributes[identifiers.AttributeCluster],
+			Resource:         GenerateAttackChainResource(attributes, resourceID),
 			AttackChainID:    GenerateAttackChainID(attackTrack, attributes),
-			CustomerGUID:     attributes["customerGUID"],
+			CustomerGUID:     attributes[identifiers.AttributeCustomerGUID],
 			UIStatus:         &armotypes.AttackChainUIStatus{FirstSeen: time.Now().String()},
 			LatestReportGUID: reportID,
 		},
 	}
+}
+
+func GenerateAttackChainResource(attributes map[string]string, resourceID string) identifiers.PortalDesignator {
+	attributes[identifiers.AttributeResourceID] = resourceID
+	return identifiers.PortalDesignator{DesignatorType: identifiers.DesignatorAttributes, Attributes: attributes}
 }
 
 func ConvertAttackTrackStepToAttackChainNode(step v1alpha1.IAttackTrackStep) *armotypes.AttackChainNode {
