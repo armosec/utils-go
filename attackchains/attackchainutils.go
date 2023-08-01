@@ -95,16 +95,16 @@ func validateWorkLoadMatch(postureResourceSummary *armotypes.PostureResourceSumm
 	return false
 }
 
-func ConvertAttackTracksToAttackChains(attacktracks []v1alpha1.IAttackTrack, postureResourceSummary *armotypes.PostureResourceSummary) []*armotypes.AttackChain {
+func ConvertAttackTracksToAttackChains(attacktracks []v1alpha1.IAttackTrack, prsAttributes map[string]string, reportID string) []*armotypes.AttackChain {
 	var attackChains []*armotypes.AttackChain
 	for _, attackTrack := range attacktracks {
-		attackChains = append(attackChains, ConvertAttackTrackToAttackChain(attackTrack, postureResourceSummary))
+		attackChains = append(attackChains, ConvertAttackTrackToAttackChain(attackTrack, prsAttributes, reportID))
 	}
 	return attackChains
 
 }
 
-func ConvertAttackTrackToAttackChain(attackTrack v1alpha1.IAttackTrack, postureResourceSummary *armotypes.PostureResourceSummary) *armotypes.AttackChain {
+func ConvertAttackTrackToAttackChain(attackTrack v1alpha1.IAttackTrack, prsAttributes map[string]string, reportID string) *armotypes.AttackChain {
 	var chainNodes = ConvertAttackTrackStepToAttackChainNode(attackTrack.GetData())
 	return &armotypes.AttackChain{
 		AttackChainNodes: *chainNodes,
@@ -113,12 +113,12 @@ func ConvertAttackTrackToAttackChain(attackTrack v1alpha1.IAttackTrack, postureR
 			PortalBase: armotypes.PortalBase{
 				Name: attackTrack.GetName(),
 			},
-			ClusterName:      postureResourceSummary.Designators.Attributes["cluster"],
-			Resource:         identifiers.PortalDesignator{DesignatorType: identifiers.DesignatorAttributes, Attributes: postureResourceSummary.Designators.Attributes}, // Update this with your actual logic
-			AttackChainID:    GenerateAttackChainID(attackTrack, postureResourceSummary),                                                                                // Update this with your actual logic
-			CustomerGUID:     postureResourceSummary.Designators.Attributes["customerGUID"],                                                                             // Update this with your actual logic
+			ClusterName:      prsAttributes["cluster"],
+			Resource:         identifiers.PortalDesignator{DesignatorType: identifiers.DesignatorAttributes, Attributes: prsAttributes}, // Update this with your actual logic
+			AttackChainID:    GenerateAttackChainID(attackTrack, prsAttributes),                                                         // Update this with your actual logic
+			CustomerGUID:     prsAttributes["customerGUID"],                                                                             // Update this with your actual logic
 			UIStatus:         &armotypes.AttackChainUIStatus{FirstSeen: time.Now().String()},
-			LatestReportGUID: postureResourceSummary.ReportID,
+			LatestReportGUID: reportID,
 		},
 	}
 }
@@ -166,8 +166,7 @@ func ConvertAttackTrackStepToAttackChainNode(step v1alpha1.IAttackTrackStep) *ar
 
 // GenerateAttackChainID generates attackChainID
 // structure: attackTrackName/cluster/apiVersion/namespace/kind/name
-func GenerateAttackChainID(attackTrack v1alpha1.IAttackTrack, postureResourceSummary *armotypes.PostureResourceSummary) string {
-	attributes := postureResourceSummary.Designators.Attributes
+func GenerateAttackChainID(attackTrack v1alpha1.IAttackTrack, attributes map[string]string) string {
 	elements := []string{attackTrack.GetName(), attributes["cluster"], attributes["namespace"], attributes["kind"], attributes["name"]}
 	return str.AsFNVHash(strings.Join(elements, "/"))
 }

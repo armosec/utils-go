@@ -161,8 +161,8 @@ func (h *AttackChainsEngine) DetectAllAttackChainsFromLists(postureResourceSumma
 				if len(attackTracks) == 0 {
 					continue
 				}
-
-				currentAttackChains := ConvertAttackTracksToAttackChains(attackTracks, postureResourceSummaries[i])
+				prsAttributes := postureResourceSummaries[i].Designators.Attributes
+				currentAttackChains := ConvertAttackTracksToAttackChains(attackTracks, prsAttributes, postureResourceSummaries[i].ReportID)
 
 				attackChains = append(attackChains, currentAttackChains...)
 			}
