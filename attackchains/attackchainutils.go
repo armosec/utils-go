@@ -95,16 +95,16 @@ func validateWorkLoadMatch(postureResourceSummary *armotypes.PostureResourceSumm
 	return false
 }
 
-func ConvertAttackTracksToAttackChains(attacktracks []v1alpha1.IAttackTrack, prsAttributes map[string]string, reportID string) []*armotypes.AttackChain {
+func ConvertAttackTracksToAttackChains(attacktracks []v1alpha1.IAttackTrack, attributes map[string]string, reportID string) []*armotypes.AttackChain {
 	var attackChains []*armotypes.AttackChain
 	for _, attackTrack := range attacktracks {
-		attackChains = append(attackChains, ConvertAttackTrackToAttackChain(attackTrack, prsAttributes, reportID))
+		attackChains = append(attackChains, ConvertAttackTrackToAttackChain(attackTrack, attributes, reportID))
 	}
 	return attackChains
 
 }
 
-func ConvertAttackTrackToAttackChain(attackTrack v1alpha1.IAttackTrack, prsAttributes map[string]string, reportID string) *armotypes.AttackChain {
+func ConvertAttackTrackToAttackChain(attackTrack v1alpha1.IAttackTrack, attributes map[string]string, reportID string) *armotypes.AttackChain {
 	var chainNodes = ConvertAttackTrackStepToAttackChainNode(attackTrack.GetData())
 	return &armotypes.AttackChain{
 		AttackChainNodes: *chainNodes,
@@ -113,10 +113,10 @@ func ConvertAttackTrackToAttackChain(attackTrack v1alpha1.IAttackTrack, prsAttri
 			PortalBase: armotypes.PortalBase{
 				Name: attackTrack.GetName(),
 			},
-			ClusterName:      prsAttributes["cluster"],
-			Resource:         identifiers.PortalDesignator{DesignatorType: identifiers.DesignatorAttributes, Attributes: prsAttributes}, // Update this with your actual logic
-			AttackChainID:    GenerateAttackChainID(attackTrack, prsAttributes),                                                         // Update this with your actual logic
-			CustomerGUID:     prsAttributes["customerGUID"],                                                                             // Update this with your actual logic
+			ClusterName:      attributes["cluster"],
+			Resource:         identifiers.PortalDesignator{DesignatorType: identifiers.DesignatorAttributes, Attributes: attributes}, // Update this with your actual logic
+			AttackChainID:    GenerateAttackChainID(attackTrack, attributes),                                                         // Update this with your actual logic
+			CustomerGUID:     attributes["customerGUID"],                                                                             // Update this with your actual logic
 			UIStatus:         &armotypes.AttackChainUIStatus{FirstSeen: time.Now().String()},
 			LatestReportGUID: reportID,
 		},
