@@ -69,11 +69,6 @@ func (h *AttackChainsEngine) detectSingleAttackChain(attackTrack v1alpha1.IAttac
 // getAttackTrackControlsLookup returns a lookup of all the controls that are relevant to the attack tracks
 func (h *AttackChainsEngine) getAttackTrackControlsLookup(postureResourceSummary *armotypes.PostureResourceSummary, vul *cscanlib.CommonContainerScanSummaryResult) (v1alpha1.AttackTrackControlsLookup, error) {
 
-	// If there are no failed controls and no warnings, return nil
-	if postureResourceSummary.FailedControlCount == 0 && postureResourceSummary.WarningControlCount == 0 {
-		return nil, nil
-	}
-
 	relevantControls, err := h.getRelevantControls(postureResourceSummary)
 	if err != nil {
 		return nil, err
