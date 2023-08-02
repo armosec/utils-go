@@ -53,10 +53,11 @@ func convertVulToControl(vul *cscanlib.CommonContainerScanSummaryResult, tags []
 		ControlID: vul.ImageID,
 		PortalBase: armotypes.PortalBase{
 			Attributes: map[string]interface{}{
-				"controlTypeTags": tags,
-				"attackTracks":    attackTrackCategories,
-				"vulnerabilities": vul.Vulnerabilities,
-				"ContainerScanID": vul.ContainerScanID,
+				"controlTypeTags":                    tags,
+				"attackTracks":                       attackTrackCategories,
+				"vulnerabilities":                    vul.Vulnerabilities,
+				identifiers.AttributeContainerScanId: vul.ContainerScanID,
+				identifiers.AttributeContainerName:   vul.ContainerName,
 			},
 		},
 	}
@@ -138,11 +139,19 @@ func ConvertAttackTrackStepToAttackChainNode(step v1alpha1.IAttackTrackStep) *ar
 
 	if step.DoesCheckVulnerabilities() {
 		for _, vulControl := range step.GetControls() {
-			containerScanID := vulControl.(*reporthandling.Control).Attributes["ContainerScanID"].(string)
+			containerScanID := vulControl.(*reporthandling.Control).Attributes[identifiers.AttributeContainerScanId].(string)
+			containerName := vulControl.(*reporthandling.Control).Attributes[identifiers.AttributeContainerName].(string)
 			vulnerabilities := vulControl.(*reporthandling.Control).Attributes["vulnerabilities"].([]cscanlib.ShortVulnerabilityResult)
-			for _, vul := range vulnerabilities {
-				imageVulnerabilities = append(imageVulnerabilities, armotypes.Vulnerabilities{ContainersScanID: containerScanID, Names: []string{vul.Name}})
+
+			vulNames := []string{}
+
+			if len(vulnerabilities) > 0 {
+				for _, vul := range vulnerabilities {
+					vulNames = append(vulNames, vul.Name)
+				}
 			}
+
+			imageVulnerabilities = append(imageVulnerabilities, armotypes.Vulnerabilities{ContainersScanID: containerScanID, ContainerName: containerName, Names: vulNames})
 
 		}
 	} else {
@@ -163,7 +172,7 @@ func ConvertAttackTrackStepToAttackChainNode(step v1alpha1.IAttackTrackStep) *ar
 		Name:             step.GetName(),
 		Description:      step.GetDescription(),
 		ControlIDs:       controlIDs,
-		Vulnerabilities:  imageVulnerabilities,             // Update this with your actual logic
+		Vulnerabilities:  imageVulnerabilities,
 		RelatedResources: []identifiers.PortalDesignator{}, // Enrich from PostureReportResultRaw new "RelatedResources" field.
 		NextNodes:        nextNodes,
 	}
