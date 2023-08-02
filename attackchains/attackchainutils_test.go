@@ -129,8 +129,9 @@ func TestConvertAttackTrackStepToAttackChainNode(t *testing.T) {
 	control_1 := &reporthandling.Control{ControlID: "control_1",
 		PortalBase: armotypes.PortalBase{
 			Attributes: map[string]interface{}{
-				"ContainerScanID": "ContainerScanID1",
-				"vulnerabilities": []cscanlib.ShortVulnerabilityResult{},
+				identifiers.AttributeContainerScanId: "ContainerScanID1",
+				identifiers.AttributeContainerName:   "ContainerName1",
+				"vulnerabilities":                    []cscanlib.ShortVulnerabilityResult{},
 			},
 		}}
 
