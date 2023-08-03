@@ -118,7 +118,7 @@ func ConvertAttackTrackToAttackChain(attackTrack v1alpha1.IAttackTrack, attribut
 			Resource:         GenerateAttackChainResource(attributes, resourceID),
 			AttackChainID:    GenerateAttackChainID(attackTrack, attributes),
 			CustomerGUID:     attributes[identifiers.AttributeCustomerGUID],
-			UIStatus:         &armotypes.AttackChainUIStatus{FirstSeen: time.Now().String()},
+			UIStatus:         &armotypes.AttackChainUIStatus{FirstSeen: time.Now().UTC().Format("2006-01-02T15:04:05.999Z")},
 			LatestReportGUID: reportID,
 		},
 	}
