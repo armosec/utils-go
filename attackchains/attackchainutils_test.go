@@ -235,7 +235,7 @@ func TestGenerateAttackChainID(t *testing.T) {
 			// Create a mock attackTrack for testing
 			mockAttackTrack := v1alpha1.AttackTrack{}
 			// Call the function to get the actual attackChainID
-			actualAttackChainID := GenerateAttackChainID(&mockAttackTrack, mockResourceSummary.Designators.Attributes)
+			actualAttackChainID := GenerateAttackChainID(mockAttackTrack.GetName(), mockResourceSummary.Designators.Attributes)
 
 			// Check if the actual value matches the expected value
 			assert.Equal(t, tc.expectedAttackChainID, actualAttackChainID)
