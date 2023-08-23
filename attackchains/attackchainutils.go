@@ -13,15 +13,15 @@ import (
 )
 
 func isSupportedKind(kind string) bool {
-	switch kind {
-	case "Deployment",
-		"Pod",
-		"ReplicaSet",
-		"Node",
-		"DaemonSet",
-		"StatefulSet",
-		"Job",
-		"CronJob":
+	switch strings.ToLower(kind) {
+	case "deployment",
+		"pod",
+		"replicaset",
+		"node",
+		"daemonset",
+		"statefulset",
+		"job",
+		"cronjob":
 		return true
 	}
 

@@ -14,11 +14,11 @@ const (
 )
 
 type AttackChainsEngine struct {
-	attackTracks []v1alpha1.IAttackTrack            // All attack tracks
-	allControls  map[string]*reporthandling.Control // All controls that might potentially be relevant to any of the attack tracks
+	attackTracks           []v1alpha1.IAttackTrack            // All attack tracks
+	allAttackTrackControls map[string]*reporthandling.Control // All controls that might potentially be relevant to any of the attack tracks
 }
 
-func NewAttackChainHandler(attackTracks []v1alpha1.IAttackTrack, allControls map[string]*reporthandling.Control) (*AttackChainsEngine, error) {
+func NewAttackChainHandler(attackTracks []v1alpha1.IAttackTrack, allAttackTrackControls map[string]*reporthandling.Control) (*AttackChainsEngine, error) {
 
 	if len(attackTracks) == 0 {
 		return nil, fmt.Errorf("expected to find at least one attack track")
@@ -31,8 +31,8 @@ func NewAttackChainHandler(attackTracks []v1alpha1.IAttackTrack, allControls map
 	}
 
 	handler := &AttackChainsEngine{
-		attackTracks: attackTracks,
-		allControls:  allControls,
+		attackTracks:           attackTracks,
+		allAttackTrackControls: allAttackTrackControls,
 	}
 
 	return handler, nil
@@ -72,6 +72,10 @@ func (h *AttackChainsEngine) getAttackTrackControlsLookup(postureResourceSummary
 	relevantControls, err := h.getRelevantControls(postureResourceSummary)
 	if err != nil {
 		return nil, err
+	}
+
+	if len(relevantControls) == 0 {
+		return nil, nil
 	}
 
 	attackTracks, err := h.GetAttackTrack()
@@ -121,6 +125,10 @@ func (h *AttackChainsEngine) DetectAllAttackChains(postureResourceSummary *armot
 	controlsLookup, err := h.getAttackTrackControlsLookup(postureResourceSummary, vul)
 	if err != nil {
 		return nil, err
+	}
+
+	if controlsLookup == nil {
+		return nil, nil
 	}
 
 	// For each attack track, detect attack chains.
@@ -184,12 +192,10 @@ func (h *AttackChainsEngine) getRelevantControls(postureResourceSummary *armotyp
 	relevantControls := make(map[string]v1alpha1.IAttackTrackControl, n_relevant)
 
 	for _, controlID := range relevantControlsIDs {
-		control, ok := h.allControls[controlID]
-		if !ok {
-			return nil, fmt.Errorf("control %s not found", controlID)
+		control, ok := h.allAttackTrackControls[controlID]
+		if ok {
+			relevantControls[controlID] = control
 		}
-
-		relevantControls[controlID] = control
 	}
 
 	return relevantControls, nil
