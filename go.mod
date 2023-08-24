@@ -1,6 +1,6 @@
 module github.com/armosec/utils-go
 
-go 1.20
+go 1.19
 
 require (
 	github.com/armosec/armoapi-go v0.0.230
