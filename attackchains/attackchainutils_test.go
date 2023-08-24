@@ -17,6 +17,7 @@ func TestIsVulnarableRelevantToAttackChange(t *testing.T) {
 		name     string
 		vul      *cscanlib.CommonContainerScanSummaryResult
 		expected bool
+		wantErr  bool
 	}{
 		{
 			name: "relevant - has relevancy data and relevant label is yes",
@@ -24,9 +25,10 @@ func TestIsVulnarableRelevantToAttackChange(t *testing.T) {
 				ImageID:          "ss",
 				HasRelevancyData: true,
 				RelevantLabel:    "yes",
-				SeverityStats:    cscanlib.SeverityStats{Severity: "Critical"},
+				SeveritiesStats:  []cscanlib.SeverityStats{{Severity: "Critical", TotalCount: 1}},
 			},
 			expected: true,
+			wantErr:  false,
 		},
 		{
 			name: "relevant - has relevancy data and relevant label is yes but not critical",
@@ -34,9 +36,10 @@ func TestIsVulnarableRelevantToAttackChange(t *testing.T) {
 				ImageID:          "ss",
 				HasRelevancyData: true,
 				RelevantLabel:    "yes",
-				SeverityStats:    cscanlib.SeverityStats{Severity: "High"},
+				SeveritiesStats:  []cscanlib.SeverityStats{{Severity: "High", TotalCount: 1}},
 			},
 			expected: false,
+			wantErr:  false,
 		},
 		{
 			name: "not relevant - has relevancy data and relevant label is no",
@@ -44,8 +47,10 @@ func TestIsVulnarableRelevantToAttackChange(t *testing.T) {
 				ImageID:          "ss",
 				HasRelevancyData: true,
 				RelevantLabel:    "no",
+				SeveritiesStats:  []cscanlib.SeverityStats{{Severity: "High", TotalCount: 1}},
 			},
 			expected: false,
+			wantErr:  false,
 		},
 		{
 			name: "relevant - has no relevancy data and relevant label is no",
@@ -53,14 +58,30 @@ func TestIsVulnarableRelevantToAttackChange(t *testing.T) {
 				ImageID:          "ss",
 				HasRelevancyData: false,
 				RelevantLabel:    "no",
-				SeverityStats:    cscanlib.SeverityStats{Severity: "Critical"},
+				SeveritiesStats:  []cscanlib.SeverityStats{{Severity: "Critical", TotalCount: 1}},
 			},
 			expected: true,
+			wantErr:  false,
+		},
+		{
+			name: "relevant but no severity stats - should return error",
+			vul: &cscanlib.CommonContainerScanSummaryResult{
+				ImageID:          "ss",
+				HasRelevancyData: true,
+				RelevantLabel:    "yes",
+			},
+			expected: false,
+			wantErr:  true,
 		},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			actual := isVulnerableRelevantToAttackChain(test.vul)
+			actual, err := isVulnerableRelevantToAttackChain(test.vul)
+			if test.wantErr {
+				assert.Error(t, err)
+			} else {
+				assert.NoError(t, err)
+			}
 			assert.Equal(t, test.expected, actual)
 		})
 	}
