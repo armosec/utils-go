@@ -1,6 +1,7 @@
 package attackchains
 
 import (
+	"fmt"
 	"strings"
 	"time"
 
@@ -64,20 +65,25 @@ func convertVulToControl(vul *cscanlib.CommonContainerScanSummaryResult, tags []
 }
 
 // isVulnerableRelevantToAttackChain checks if the vulnerability is relevant to the attack chain
-func isVulnerableRelevantToAttackChain(vul *cscanlib.CommonContainerScanSummaryResult) bool {
+func isVulnerableRelevantToAttackChain(vul *cscanlib.CommonContainerScanSummaryResult) (bool, error) {
 	// validate relevancy
 	if !vul.HasRelevancyData || (vul.HasRelevancyData && vul.RelevantLabel == "yes") {
 		//validate severity
 		if vul.Severity == "Critical" {
-			return true
+			return true, nil
 		}
+
+		if vul.SeveritiesStats == nil || len(vul.SeveritiesStats) == 0 {
+			return false, fmt.Errorf("Vulnerability '%s' has no severity stats", vul.WLID)
+		}
+
 		for _, stat := range vul.SeveritiesStats {
 			if stat.Severity == "Critical" && stat.TotalCount > 0 {
-				return true
+				return true, nil
 			}
 		}
 	}
-	return false
+	return false, nil
 }
 
 // validateWorkLoadMatch checks if the vulnerability and the posture resource summary are of the same workload

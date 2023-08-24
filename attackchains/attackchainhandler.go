@@ -84,7 +84,12 @@ func (h *AttackChainsEngine) getAttackTrackControlsLookup(postureResourceSummary
 	}
 
 	// If the vulnarable image is relevant to the attack chain, add it as a control
-	if isVulnerableRelevantToAttackChain(vul) {
+	vulRelevant, err := isVulnerableRelevantToAttackChain(vul)
+	if err != nil {
+		return nil, err
+	}
+
+	if vulRelevant {
 
 		// Convert the vulnarable image to a control structure
 		volAsControl := convertVulToControl(vul, []string{securityFrameworkName}, attackTracks)
