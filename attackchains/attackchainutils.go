@@ -57,7 +57,7 @@ func convertVulToControl(vul *cscanlib.CommonContainerScanSummaryResult, tags []
 				"controlTypeTags":                    tags,
 				"attackTracks":                       attackTrackCategories,
 				"vulnerabilities":                    vul.Vulnerabilities,
-				identifiers.AttributeContainerScanId: vul.ContainerScanID,
+				identifiers.AttributeContainerScanId: vul.ContainerScanID, // ImageScanID when coming from a converted VulnerabilityScanSummary from postgres
 				identifiers.AttributeContainerName:   vul.ContainerName,
 			},
 		},
@@ -146,7 +146,6 @@ func ConvertAttackTrackStepToAttackChainNode(step v1alpha1.IAttackTrackStep) *ar
 	if step.DoesCheckVulnerabilities() {
 		for _, vulControl := range step.GetControls() {
 			containerScanID := vulControl.(*reporthandling.Control).Attributes[identifiers.AttributeContainerScanId].(string)
-			containerName := vulControl.(*reporthandling.Control).Attributes[identifiers.AttributeContainerName].(string)
 			vulnerabilities := vulControl.(*reporthandling.Control).Attributes["vulnerabilities"].([]cscanlib.ShortVulnerabilityResult)
 
 			vulNames := []string{}
@@ -157,7 +156,7 @@ func ConvertAttackTrackStepToAttackChainNode(step v1alpha1.IAttackTrackStep) *ar
 				}
 			}
 
-			imageVulnerabilities = append(imageVulnerabilities, armotypes.Vulnerabilities{ContainersScanID: containerScanID, ContainerName: containerName, Names: vulNames})
+			imageVulnerabilities = append(imageVulnerabilities, armotypes.Vulnerabilities{ImageScanID: containerScanID, Names: vulNames})
 
 		}
 	} else {
