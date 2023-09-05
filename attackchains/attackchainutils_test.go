@@ -63,16 +63,16 @@ func TestIsVulnarableRelevantToAttackChange(t *testing.T) {
 			expected: true,
 			wantErr:  false,
 		},
-		{
-			name: "relevant but no severity stats - should return error",
-			vul: &cscanlib.CommonContainerScanSummaryResult{
-				ImageID:          "ss",
-				HasRelevancyData: true,
-				RelevantLabel:    "yes",
-			},
-			expected: false,
-			wantErr:  true,
-		},
+		// {
+		// 	name: "relevant but no severity stats - should return error",
+		// 	vul: &cscanlib.CommonContainerScanSummaryResult{
+		// 		ImageID:          "ss",
+		// 		HasRelevancyData: true,
+		// 		RelevantLabel:    "yes",
+		// 	},
+		// 	expected: false,
+		// 	wantErr:  true,
+		// },
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {

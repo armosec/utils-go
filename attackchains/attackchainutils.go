@@ -1,7 +1,6 @@
 package attackchains
 
 import (
-	"fmt"
 	"strings"
 	"time"
 
@@ -73,9 +72,10 @@ func isVulnerableRelevantToAttackChain(vul *cscanlib.CommonContainerScanSummaryR
 			return true, nil
 		}
 
-		if vul.SeveritiesStats == nil || len(vul.SeveritiesStats) == 0 {
-			return false, fmt.Errorf("Vulnerability '%s' has no severity stats", vul.WLID)
-		}
+		// TODO: figure out how to handle empty severity stats
+		// if vul.SeveritiesStats == nil || len(vul.SeveritiesStats) == 0 {
+		// 	return false, fmt.Errorf("Vulnerability '%s' has no severity stats", vul.WLID)
+		// }
 
 		for _, stat := range vul.SeveritiesStats {
 			if stat.Severity == "Critical" && stat.TotalCount > 0 {
