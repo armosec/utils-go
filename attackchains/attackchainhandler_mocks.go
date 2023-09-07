@@ -190,9 +190,9 @@ func GetAttackTrackMocks() ([]v1alpha1.AttackTrack, error) {
 
 	attackTracks := []v1alpha1.AttackTrack{}
 
-	for _, attackTrackMock := range attackTracksMocks {
+	for i := range attackTracksMocks {
 		attackTrack := &v1alpha1.AttackTrack{}
-		err := json.Unmarshal([]byte(attackTrackMock), &attackTrack)
+		err := json.Unmarshal([]byte(attackTracksMocks[i]), &attackTrack)
 
 		if err != nil {
 			return nil, err
