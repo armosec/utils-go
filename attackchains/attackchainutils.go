@@ -50,7 +50,7 @@ func convertVulToControl(vul *cscanlib.CommonContainerScanSummaryResult, tags []
 	}
 
 	return &reporthandling.Control{
-		ControlID: vul.ImageID,
+		ControlID: vul.ImageID + vul.ContainerName,
 		PortalBase: armotypes.PortalBase{
 			Attributes: map[string]interface{}{
 				"controlTypeTags":                    tags,
@@ -64,12 +64,12 @@ func convertVulToControl(vul *cscanlib.CommonContainerScanSummaryResult, tags []
 }
 
 // isVulnerableRelevantToAttackChain checks if the vulnerability is relevant to the attack chain
-func isVulnerableRelevantToAttackChain(vul *cscanlib.CommonContainerScanSummaryResult) (bool, error) {
+func isVulnerableRelevantToAttackChain(vul *cscanlib.CommonContainerScanSummaryResult) bool {
 	// validate relevancy
 	if !vul.HasRelevancyData || (vul.HasRelevancyData && vul.RelevantLabel == "yes") {
 		//validate severity
 		if vul.Severity == "Critical" {
-			return true, nil
+			return true
 		}
 
 		// TODO: figure out how to handle empty severity stats
@@ -79,11 +79,11 @@ func isVulnerableRelevantToAttackChain(vul *cscanlib.CommonContainerScanSummaryR
 
 		for _, stat := range vul.SeveritiesStats {
 			if stat.Severity == "Critical" && stat.TotalCount > 0 {
-				return true, nil
+				return true
 			}
 		}
 	}
-	return false, nil
+	return false
 }
 
 // validateWorkLoadMatch checks if the vulnerability and the posture resource summary are of the same workload
@@ -156,7 +156,10 @@ func ConvertAttackTrackStepToAttackChainNode(step v1alpha1.IAttackTrackStep) *ar
 				}
 			}
 
-			imageVulnerabilities = append(imageVulnerabilities, armotypes.Vulnerabilities{ImageScanID: containerScanID, Names: vulNames})
+			imageVulnerabilities = append(imageVulnerabilities, armotypes.Vulnerabilities{
+				ContainerName: vulControl.(*reporthandling.Control).Attributes[identifiers.AttributeContainerName].(string),
+				ImageScanID:   containerScanID,
+				Names:         vulNames})
 
 		}
 	} else {

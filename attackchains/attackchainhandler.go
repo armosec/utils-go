@@ -67,7 +67,7 @@ func (h *AttackChainsEngine) detectSingleAttackChain(attackTrack v1alpha1.IAttac
 }
 
 // getAttackTrackControlsLookup returns a lookup of all the controls that are relevant to the attack tracks
-func (h *AttackChainsEngine) getAttackTrackControlsLookup(postureResourceSummary *armotypes.PostureResourceSummary, vul *cscanlib.CommonContainerScanSummaryResult) (v1alpha1.AttackTrackControlsLookup, error) {
+func (h *AttackChainsEngine) getAttackTrackControlsLookup(postureResourceSummary *armotypes.PostureResourceSummary, vuls []*cscanlib.CommonContainerScanSummaryResult) (v1alpha1.AttackTrackControlsLookup, error) {
 
 	relevantControls, err := h.getRelevantControls(postureResourceSummary)
 	if err != nil {
@@ -83,18 +83,17 @@ func (h *AttackChainsEngine) getAttackTrackControlsLookup(postureResourceSummary
 		return nil, err
 	}
 
-	// If the vulnarable image is relevant to the attack chain, add it as a control
-	vulRelevant, err := isVulnerableRelevantToAttackChain(vul)
-	if err != nil {
-		return nil, err
-	}
+	vulRelevants := make([]*cscanlib.CommonContainerScanSummaryResult, 0, len(vuls))
 
-	if vulRelevant {
+	for _, vul := range vuls {
+		if isVulnerableRelevantToAttackChain(vul) {
+			vulRelevants = append(vulRelevants, vul)
 
-		// Convert the vulnarable image to a control structure
-		volAsControl := convertVulToControl(vul, []string{securityFrameworkName}, attackTracks)
-		if volAsControl != nil {
-			relevantControls[volAsControl.ControlID] = volAsControl
+			// Convert the vulnarable image to a control structure
+			volAsControl := convertVulToControl(vul, []string{securityFrameworkName}, attackTracks)
+			if volAsControl != nil {
+				relevantControls[volAsControl.ControlID] = volAsControl
+			}
 		}
 	}
 
@@ -111,7 +110,7 @@ func (h *AttackChainsEngine) getAttackTrackControlsLookup(postureResourceSummary
 }
 
 // DetectAllAttackChains - Detects all the attack chains that are relevant to the postureResourceSummary
-func (h *AttackChainsEngine) DetectAllAttackChains(postureResourceSummary *armotypes.PostureResourceSummary, vul *cscanlib.CommonContainerScanSummaryResult) ([]v1alpha1.IAttackTrack, error) {
+func (h *AttackChainsEngine) DetectAllAttackChains(postureResourceSummary *armotypes.PostureResourceSummary, vul []*cscanlib.CommonContainerScanSummaryResult) ([]v1alpha1.IAttackTrack, error) {
 
 	attackChains := []v1alpha1.IAttackTrack{}
 
@@ -151,32 +150,6 @@ func (h *AttackChainsEngine) DetectAllAttackChains(postureResourceSummary *armot
 
 	return attackChains, nil
 
-}
-
-func (h *AttackChainsEngine) DetectAllAttackChainsFromLists(postureResourceSummaries []*armotypes.PostureResourceSummary, vuls []*cscanlib.CommonContainerScanSummaryResult) ([]*armotypes.AttackChain, error) {
-	var attackChains []*armotypes.AttackChain
-
-	for i := range postureResourceSummaries {
-		for j := range vuls {
-			// validate that the vulnarable image matches to the postureResourceSummary}
-			// ignoring the error, if they don't match they won't create an attack chain
-			if validateWorkLoadMatch(postureResourceSummaries[i], vuls[j]) {
-				attackTracks, err := h.DetectAllAttackChains(postureResourceSummaries[i], vuls[j])
-				if err != nil {
-					return nil, err
-				}
-
-				if len(attackTracks) == 0 {
-					continue
-				}
-				prsAttributes := postureResourceSummaries[i].Designators.Attributes
-				currentAttackChains := ConvertAttackTracksToAttackChains(attackTracks, prsAttributes, postureResourceSummaries[i].ResourceID, postureResourceSummaries[i].ReportID)
-				attackChains = append(attackChains, currentAttackChains...)
-			}
-		}
-	}
-
-	return attackChains, nil
 }
 
 // GetAttackTrack - Returns all the attack tracks

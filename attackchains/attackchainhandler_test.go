@@ -4,14 +4,10 @@ import (
 	"testing"
 
 	"github.com/armosec/armoapi-go/containerscan"
+	cscanlib "github.com/armosec/armoapi-go/containerscan"
 	"github.com/kubescape/opa-utils/reporthandling/attacktrack/v1alpha1"
 	"github.com/stretchr/testify/assert"
 )
-
-type vulnerabilityTest struct {
-	HasRelevancyData bool
-	RelevantLabel    containerscan.RelevantLabel
-}
 
 var allControls = AllControlsMock()
 
@@ -53,7 +49,7 @@ func TestDetectSingleAttackTrack(t *testing.T) {
 		attackTrack     v1alpha1.IAttackTrack
 		FailedControls  []string
 		WarningControls []string
-		Vul             vulnerabilityTest
+		Vuls            []*cscanlib.CommonContainerScanSummaryResult
 		Expected        v1alpha1.IAttackTrack
 	}{
 		{
@@ -61,10 +57,10 @@ func TestDetectSingleAttackTrack(t *testing.T) {
 			attackTrack:     attackTrack1,
 			FailedControls:  []string{"control1", "control2"},
 			WarningControls: []string{"control3", "control4"},
-			Vul: vulnerabilityTest{
-				HasRelevancyData: true,
-				RelevantLabel:    "yes",
+			Vuls: []*cscanlib.CommonContainerScanSummaryResult{
+				CommonContainerScanSummaryResultMock(true, containerscan.RelevantLabelYes, Attributes),
 			},
+
 			Expected: AttackTrackMock("attackchain1", v1alpha1.AttackTrackStep{
 				Name: "A",
 				SubSteps: []v1alpha1.AttackTrackStep{
@@ -85,10 +81,35 @@ func TestDetectSingleAttackTrack(t *testing.T) {
 			attackTrack:     attackTrack1,
 			FailedControls:  []string{"control1", "control2"},
 			WarningControls: []string{"control3", "control4"},
-			Vul: vulnerabilityTest{
-				HasRelevancyData: false,
-				RelevantLabel:    "",
+			Vuls: []*cscanlib.CommonContainerScanSummaryResult{
+				CommonContainerScanSummaryResultMock(false, containerscan.RelevantLabelYes, Attributes),
 			},
+
+			Expected: AttackTrackMock("attackchain1", v1alpha1.AttackTrackStep{
+				Name: "A",
+				SubSteps: []v1alpha1.AttackTrackStep{
+					{
+						ChecksVulnerabilities: true,
+						Name:                  "vulnerableImageStepName",
+						SubSteps: []v1alpha1.AttackTrackStep{
+							{
+								Name: "C",
+							},
+						},
+					},
+				},
+			}),
+		},
+		{
+			name:            "Attack chain exists with 1 vulnarable image out of two",
+			attackTrack:     attackTrack1,
+			FailedControls:  []string{"control1", "control2"},
+			WarningControls: []string{"control3", "control4"},
+			Vuls: []*cscanlib.CommonContainerScanSummaryResult{
+				CommonContainerScanSummaryResultMock(true, containerscan.RelevantLabelNo, Attributes),
+				CommonContainerScanSummaryResultMock(false, containerscan.RelevantLabelYes, Attributes),
+			},
+
 			Expected: AttackTrackMock("attackchain1", v1alpha1.AttackTrackStep{
 				Name: "A",
 				SubSteps: []v1alpha1.AttackTrackStep{
@@ -109,10 +130,10 @@ func TestDetectSingleAttackTrack(t *testing.T) {
 			attackTrack:     attackTrack1,
 			FailedControls:  []string{"control1", "control2"},
 			WarningControls: []string{"control3", "control4"},
-			Vul: vulnerabilityTest{
-				HasRelevancyData: true,
-				RelevantLabel:    "no",
+			Vuls: []*cscanlib.CommonContainerScanSummaryResult{
+				CommonContainerScanSummaryResultMock(true, containerscan.RelevantLabelNo, Attributes),
 			},
+
 			Expected: nil,
 		},
 		{
@@ -120,10 +141,10 @@ func TestDetectSingleAttackTrack(t *testing.T) {
 			attackTrack:     attackTrack1,
 			FailedControls:  []string{"control1", "control2"},
 			WarningControls: []string{"control6"},
-			Vul: vulnerabilityTest{
-				HasRelevancyData: true,
-				RelevantLabel:    "no",
+			Vuls: []*cscanlib.CommonContainerScanSummaryResult{
+				CommonContainerScanSummaryResultMock(true, containerscan.RelevantLabelNo, Attributes),
 			},
+
 			Expected: AttackTrackMock("attackchain1", v1alpha1.AttackTrackStep{
 				Name: "A",
 				SubSteps: []v1alpha1.AttackTrackStep{
@@ -143,10 +164,10 @@ func TestDetectSingleAttackTrack(t *testing.T) {
 			attackTrack:     attackTrack1,
 			FailedControls:  []string{"control1", "control2", "control6"},
 			WarningControls: []string{"control3", "control4"},
-			Vul: vulnerabilityTest{
-				HasRelevancyData: true,
-				RelevantLabel:    "yes",
+			Vuls: []*cscanlib.CommonContainerScanSummaryResult{
+				CommonContainerScanSummaryResultMock(true, containerscan.RelevantLabelYes, Attributes),
 			},
+
 			Expected: AttackTrackMock("attackchain1", v1alpha1.AttackTrackStep{
 				Name: "A",
 				SubSteps: []v1alpha1.AttackTrackStep{
@@ -180,9 +201,7 @@ func TestDetectSingleAttackTrack(t *testing.T) {
 
 			postureResourcesSummary := PostureResourcesSummaryMock(Attributes, test.FailedControls, test.WarningControls)
 
-			commonContainerScanSummaryResult := CommonContainerScanSummaryResultMock(test.Vul.HasRelevancyData, test.Vul.RelevantLabel, Attributes)
-
-			controlsLookup, err := attackChainHandler.getAttackTrackControlsLookup(postureResourcesSummary, commonContainerScanSummaryResult)
+			controlsLookup, err := attackChainHandler.getAttackTrackControlsLookup(postureResourcesSummary, test.Vuls)
 			assert.NoError(t, err)
 			attackChain, err := attackChainHandler.detectSingleAttackChain(test.attackTrack, controlsLookup)
 			assert.NoError(t, err)
@@ -204,6 +223,11 @@ func TestDetectSingleAttackTrack(t *testing.T) {
 }
 
 func TestDetectAllAttackChains(t *testing.T) {
+
+	Attributes := map[string]string{"cluster": "minikubesecurity1",
+		"kind":      "Pod",
+		"name":      "wowtest",
+		"namespace": "default"}
 
 	attackTrack1 := AttackTrackMock("attackchain1", v1alpha1.AttackTrackStep{
 		Name: "A",
@@ -251,7 +275,7 @@ func TestDetectAllAttackChains(t *testing.T) {
 		attackTracks         []v1alpha1.IAttackTrack
 		FailedControls       []string
 		WarningControls      []string
-		Vul                  vulnerabilityTest
+		Vuls                 []*cscanlib.CommonContainerScanSummaryResult
 		ExpectedAttackTracks []v1alpha1.IAttackTrack
 	}{
 		{
@@ -259,10 +283,10 @@ func TestDetectAllAttackChains(t *testing.T) {
 			attackTracks:    []v1alpha1.IAttackTrack{attackTrack1},
 			FailedControls:  []string{"control1", "control2"},
 			WarningControls: []string{"control3", "control4"},
-			Vul: vulnerabilityTest{
-				HasRelevancyData: true,
-				RelevantLabel:    "yes",
+			Vuls: []*cscanlib.CommonContainerScanSummaryResult{
+				CommonContainerScanSummaryResultMock(true, containerscan.RelevantLabelYes, Attributes),
 			},
+
 			ExpectedAttackTracks: []v1alpha1.IAttackTrack{AttackTrackMock("attackchain1", v1alpha1.AttackTrackStep{
 				Name: "A",
 				SubSteps: []v1alpha1.AttackTrackStep{
@@ -283,10 +307,10 @@ func TestDetectAllAttackChains(t *testing.T) {
 			attackTracks:    []v1alpha1.IAttackTrack{attackTrack1, attackTrack2},
 			FailedControls:  []string{"control1", "control2", "control6"},
 			WarningControls: []string{"control3", "control4"},
-			Vul: vulnerabilityTest{
-				HasRelevancyData: true,
-				RelevantLabel:    "yes",
+			Vuls: []*cscanlib.CommonContainerScanSummaryResult{
+				CommonContainerScanSummaryResultMock(true, containerscan.RelevantLabelYes, Attributes),
 			},
+
 			ExpectedAttackTracks: []v1alpha1.IAttackTrack{AttackTrackMock("attackchain1", v1alpha1.AttackTrackStep{
 				Name: "A",
 				SubSteps: []v1alpha1.AttackTrackStep{
@@ -335,9 +359,7 @@ func TestDetectAllAttackChains(t *testing.T) {
 
 			postureResourcesSummary := PostureResourcesSummaryMock(Attributes, test.FailedControls, test.WarningControls)
 
-			commonContainerScanSummaryResult := CommonContainerScanSummaryResultMock(test.Vul.HasRelevancyData, test.Vul.RelevantLabel, Attributes)
-
-			attackChains, err := attackChainHandler.DetectAllAttackChains(postureResourcesSummary, commonContainerScanSummaryResult)
+			attackChains, err := attackChainHandler.DetectAllAttackChains(postureResourcesSummary, test.Vuls)
 
 			assert.NoError(t, err)
 			assert.Equalf(t, len(test.ExpectedAttackTracks), len(attackChains), "Expected and actual attack chains are not equal")

@@ -76,12 +76,8 @@ func TestIsVulnarableRelevantToAttackChange(t *testing.T) {
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			actual, err := isVulnerableRelevantToAttackChain(test.vul)
-			if test.wantErr {
-				assert.Error(t, err)
-			} else {
-				assert.NoError(t, err)
-			}
+			actual := isVulnerableRelevantToAttackChain(test.vul)
+
 			assert.Equal(t, test.expected, actual)
 		})
 	}
@@ -152,7 +148,7 @@ func TestConvertAttackTrackStepToAttackChainNode(t *testing.T) {
 			Attributes: map[string]interface{}{
 				identifiers.AttributeContainerScanId: "ContainerScanID1",
 				identifiers.AttributeContainerName:   "ContainerName1",
-				"vulnerabilities":                    []cscanlib.ShortVulnerabilityResult{},
+				"vulnerabilities":                    []cscanlib.ShortVulnerabilityResult{{Name: "CVE1"}},
 			},
 		}}
 
@@ -180,7 +176,7 @@ func TestConvertAttackTrackStepToAttackChainNode(t *testing.T) {
 			},
 		},
 		{
-			name: "attack step is not nil",
+			name: "attack step is not nil, not vul",
 			step: &v1alpha1.AttackTrackStep{
 				Name:     "test",
 				Controls: []v1alpha1.IAttackTrackControl{control_1},
@@ -191,6 +187,25 @@ func TestConvertAttackTrackStepToAttackChainNode(t *testing.T) {
 				ControlIDs: []string{"control_1"},
 			},
 		},
+		{
+			name: "attack step is not nil, vul",
+			step: &v1alpha1.AttackTrackStep{
+				Name:                  "test",
+				ChecksVulnerabilities: true,
+				Controls:              []v1alpha1.IAttackTrackControl{control_1},
+			},
+
+			expected: &armotypes.AttackChainNode{
+				Name: "test",
+				Vulnerabilities: []armotypes.Vulnerabilities{
+					{
+						ContainerName: "ContainerName1",
+						ImageScanID:   "ContainerScanID1",
+						Names:         []string{"CVE1"},
+					},
+				},
+			},
+		},
 	}
 
 	for _, test := range tests {
@@ -199,6 +214,9 @@ func TestConvertAttackTrackStepToAttackChainNode(t *testing.T) {
 			if !(test.expected == nil && actual == nil) {
 				assert.Equal(t, test.expected.Name, actual.Name, "expected and actual are not equal")
 				assert.Equal(t, test.expected.ControlIDs, actual.ControlIDs, "expected and actual are not equal")
+				if test.expected.Vulnerabilities != nil {
+					assert.Equal(t, test.expected.Vulnerabilities[0].ContainerName, actual.Vulnerabilities[0].ContainerName, "expected and actual are not equal")
+				}
 			}
 		})
 	}
