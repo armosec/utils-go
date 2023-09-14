@@ -65,19 +65,31 @@ func convertVulToControl(vul *cscanlib.CommonContainerScanSummaryResult, tags []
 
 // isVulnerableRelevantToAttackChain checks if the vulnerability is relevant to the attack chain
 func isVulnerableRelevantToAttackChain(vul *cscanlib.CommonContainerScanSummaryResult) bool {
-	// validate relevancy
-	if !vul.HasRelevancyData || (vul.HasRelevancyData && vul.RelevantLabel == cscanlib.RelevantLabelYes) {
+
+	if !vul.HasRelevancyData {
 		//validate severity
 		if vul.Severity == cscanlib.CriticalSeverity {
 			return true
 		}
 		for _, stat := range vul.SeveritiesStats {
 
-			if stat.Severity == cscanlib.CriticalSeverity && stat.RelevantCount > 0 {
+			if stat.Severity == cscanlib.CriticalSeverity && stat.TotalCount > 0 {
 				return true
 			}
 		}
+	} else {
+
+		if vul.HasRelevancyData && vul.RelevantLabel == cscanlib.RelevantLabelYes {
+
+			for _, stat := range vul.SeveritiesStats {
+
+				if stat.Severity == cscanlib.CriticalSeverity && stat.RelevantCount > 0 {
+					return true
+				}
+			}
+		}
 	}
+
 	return false
 }
 
