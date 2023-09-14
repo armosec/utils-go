@@ -66,19 +66,14 @@ func convertVulToControl(vul *cscanlib.CommonContainerScanSummaryResult, tags []
 // isVulnerableRelevantToAttackChain checks if the vulnerability is relevant to the attack chain
 func isVulnerableRelevantToAttackChain(vul *cscanlib.CommonContainerScanSummaryResult) bool {
 	// validate relevancy
-	if !vul.HasRelevancyData || (vul.HasRelevancyData && vul.RelevantLabel == "yes") {
+	if !vul.HasRelevancyData || (vul.HasRelevancyData && vul.RelevantLabel == cscanlib.RelevantLabelYes) {
 		//validate severity
-		if vul.Severity == "Critical" {
+		if vul.Severity == cscanlib.CriticalSeverity {
 			return true
 		}
-
-		// TODO: figure out how to handle empty severity stats
-		// if vul.SeveritiesStats == nil || len(vul.SeveritiesStats) == 0 {
-		// 	return false, fmt.Errorf("Vulnerability '%s' has no severity stats", vul.WLID)
-		// }
-
 		for _, stat := range vul.SeveritiesStats {
-			if stat.Severity == "Critical" && stat.TotalCount > 0 {
+
+			if stat.Severity == cscanlib.CriticalSeverity && stat.RelevantCount > 0 {
 				return true
 			}
 		}
