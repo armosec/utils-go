@@ -58,7 +58,7 @@ func TestIsVulnarableRelevantToAttackChange(t *testing.T) {
 				ImageID:          "ss",
 				HasRelevancyData: false,
 				RelevantLabel:    "no",
-				SeveritiesStats:  []cscanlib.SeverityStats{{Severity: "Critical", RelevantCount: 1}},
+				SeveritiesStats:  []cscanlib.SeverityStats{{Severity: "Critical", RelevantCount: 0, TotalCount: 1}},
 			},
 			expected: true,
 			wantErr:  false,

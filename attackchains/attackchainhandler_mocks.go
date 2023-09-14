@@ -94,6 +94,9 @@ func CommonContainerScanSummaryResultMock(hasRelevancyData bool, relevantLabel c
 		Vulnerabilities: vuls,
 		ContainerScanID: uuid.New().String(),
 		SeverityStats:   cscanlib.SeverityStats{Severity: "Critical"},
+		SeveritiesStats: []cscanlib.SeverityStats{
+			{Severity: "Critical", TotalCount: 1, RelevantCount: 1},
+		},
 	}
 }
 
