@@ -79,7 +79,7 @@ func isVulnerableRelevantToAttackChain(vul *cscanlib.CommonContainerScanSummaryR
 		}
 	} else {
 
-		if vul.HasRelevancyData && vul.RelevantLabel == cscanlib.RelevantLabelYes {
+		if vul.RelevantLabel == cscanlib.RelevantLabelYes {
 
 			for _, stat := range vul.SeveritiesStats {
 
