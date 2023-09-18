@@ -227,6 +227,7 @@ func TestGenerateAttackChainID(t *testing.T) {
 	// Test cases
 	testCases := []struct {
 		name                  string
+		customerGUID          string
 		attackTrackName       string
 		cluster               string
 		apiVersion            string
@@ -237,23 +238,25 @@ func TestGenerateAttackChainID(t *testing.T) {
 	}{
 		{
 			name:                  "Test case 1",
+			customerGUID:          "1234567890",
 			attackTrackName:       "service-destruction",
 			cluster:               "cluster1",
 			apiVersion:            "v1",
 			namespace:             "default",
 			kind:                  "Deployment",
 			resourceName:          "my-deployment",
-			expectedAttackChainID: "3056037652",
+			expectedAttackChainID: "3257300354",
 		},
 		{
 			name:                  "Test case 1",
+			customerGUID:          "1234567890",
 			attackTrackName:       "workload-external-track",
 			cluster:               "cluster2",
 			apiVersion:            "v1",
 			namespace:             "default",
 			kind:                  "Pod",
 			resourceName:          "my-pod",
-			expectedAttackChainID: "371318589",
+			expectedAttackChainID: "1331301378",
 		},
 	}
 
@@ -272,10 +275,8 @@ func TestGenerateAttackChainID(t *testing.T) {
 				},
 			}
 
-			// Create a mock attackTrack for testing
-			mockAttackTrack := v1alpha1.AttackTrack{}
 			// Call the function to get the actual attackChainID
-			actualAttackChainID := GenerateAttackChainID(mockAttackTrack.GetName(), mockResourceSummary.Designators.Attributes)
+			actualAttackChainID := GenerateAttackChainID(tc.customerGUID, tc.attackTrackName, mockResourceSummary.Designators.Attributes)
 
 			// Check if the actual value matches the expected value
 			assert.Equal(t, tc.expectedAttackChainID, actualAttackChainID)

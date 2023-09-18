@@ -120,6 +120,7 @@ func ConvertAttackTracksToAttackChains(attacktracks []v1alpha1.IAttackTrack, att
 
 func ConvertAttackTrackToAttackChain(attackTrack v1alpha1.IAttackTrack, attributes map[string]string, resourceID, reportID string) *armotypes.AttackChain {
 	var chainNodes = ConvertAttackTrackStepToAttackChainNode(attackTrack.GetData())
+	customerGUID := attributes[identifiers.AttributeCustomerGUID]
 	return &armotypes.AttackChain{
 		AttackChainNodes: *chainNodes,
 		AttackChainConfig: armotypes.AttackChainConfig{
@@ -129,8 +130,8 @@ func ConvertAttackTrackToAttackChain(attackTrack v1alpha1.IAttackTrack, attribut
 			},
 			ClusterName:      attributes[identifiers.AttributeCluster],
 			Resource:         GenerateAttackChainResource(attributes, resourceID),
-			AttackChainID:    GenerateAttackChainID(attackTrack.GetName(), attributes),
-			CustomerGUID:     attributes[identifiers.AttributeCustomerGUID],
+			AttackChainID:    GenerateAttackChainID(customerGUID, attackTrack.GetName(), attributes),
+			CustomerGUID:     customerGUID,
 			UIStatus:         &armotypes.AttackChainUIStatus{FirstSeen: time.Now().UTC().Format("2006-01-02T15:04:05.999Z")},
 			LatestReportGUID: reportID,
 		},
@@ -194,8 +195,8 @@ func ConvertAttackTrackStepToAttackChainNode(step v1alpha1.IAttackTrackStep) *ar
 }
 
 // GenerateAttackChainID generates attackChainID
-// structure: attackTrackName/cluster/apiVersion/namespace/kind/name
-func GenerateAttackChainID(attackTrackName string, attributes map[string]string) string {
-	elements := []string{attackTrackName, attributes["cluster"], attributes["namespace"], attributes["kind"], attributes["name"]}
+// structure: customerGUID/attackTrackName/cluster/apiVersion/namespace/kind/name
+func GenerateAttackChainID(customerGUID string, attackTrackName string, attributes map[string]string) string {
+	elements := []string{attackTrackName, customerGUID, attributes["cluster"], attributes["namespace"], attributes["kind"], attributes["name"]}
 	return str.AsFNVHash(strings.Join(elements, "/"))
 }
