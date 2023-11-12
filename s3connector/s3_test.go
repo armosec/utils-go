@@ -2,6 +2,7 @@ package s3connector
 
 import (
 	"bytes"
+	"io/ioutil"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -55,7 +56,10 @@ func (suite *S3ObjectStorageSuite) TestGetObject() {
 }
 
 func (suite *S3ObjectStorageSuite) TestStoreObject() {
-	res, err := suite.S3Localstack.GetLocalStack().StoreObject("test", bytes.NewReader([]byte("test")))
+	objPath := S3ObjectPath{
+		Key: "test",
+	}
+	res, err := suite.S3Localstack.GetLocalStack().StoreObject(objPath, bytes.NewReader([]byte("test")))
 	suite.NoError(err)
 	suite.NotNil(res)
 }
@@ -70,4 +74,31 @@ func (suite *S3ObjectStorageSuite) TestDeleteObject() {
 	suite.Error(err)
 	assert.Contains(suite.T(), err.Error(), "failed to GetObject, NoSuchKey: The specified key does not exist")
 	suite.Nil(res)
+}
+
+func (suite *S3ObjectStorageSuite) TestGetByRange() {
+	// Setup
+	key := "range_test_object"
+	fullContent := "Hello, this is a range test content"
+	start := int64(7) // Starting byte position (inclusive)
+	end := int64(22)  // Ending byte position (inclusive)
+
+	// Store the test object
+	_, err := suite.S3Localstack.GetLocalStack().StoreObject(S3ObjectPath{Key: key}, bytes.NewReader([]byte(fullContent)))
+	suite.NoError(err)
+
+	// Perform the GetByRange operation
+	res, err := suite.S3Localstack.GetLocalStack().GetByRange(S3ObjectPath{Key: key}, start, end)
+	suite.NoError(err)
+	suite.NotNil(res)
+
+	// Read and verify the content
+	rangeContent, err := ioutil.ReadAll(res)
+	suite.NoError(err)
+	expectedContent := fullContent[start : end+1] // +1 because the end index is inclusive
+	suite.Equal(expectedContent, string(rangeContent))
+
+	// Clean up
+	err = suite.S3Localstack.GetLocalStack().DeleteObject(key)
+	suite.NoError(err)
 }
