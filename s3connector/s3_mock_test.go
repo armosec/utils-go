@@ -17,10 +17,12 @@ func TestNewS3Mock(t *testing.T) {
 func TestS3Mock_StoreObject(t *testing.T) {
 	mock := NewS3Mock()
 	key := "testKey"
+	objPath := S3ObjectPath{Key: key}
+
 	value := strings.NewReader("testValue")
 
 	// Store new object
-	_, err := mock.StoreObject(key, value)
+	_, err := mock.StoreObject(objPath, value)
 	if err != nil {
 		t.Errorf("Failed to store object: %s", err)
 	}
@@ -29,7 +31,7 @@ func TestS3Mock_StoreObject(t *testing.T) {
 	}
 
 	// Store object with existing key
-	_, err = mock.StoreObject(key, strings.NewReader("testValue"))
+	_, err = mock.StoreObject(objPath, strings.NewReader("testValue"))
 	if err != nil {
 		t.Errorf("Failed to store object with existing key: %s", err)
 	}
@@ -38,7 +40,7 @@ func TestS3Mock_StoreObject(t *testing.T) {
 	}
 
 	// Test error on empty bytes
-	_, err = mock.StoreObject(key, bytes.NewReader(nil))
+	_, err = mock.StoreObject(objPath, bytes.NewReader(nil))
 	if err == nil {
 		t.Errorf("Expected error on empty bytes, got none")
 	}

@@ -53,7 +53,9 @@ func (s3 *S3Mock) GetUpdatedLen() int {
 	return len(s3.updated)
 }
 
-func (s3 *S3Mock) StoreObject(key string, value io.ReadSeeker) (S3ObjectPath, error) {
+func (s3 *S3Mock) StoreObject(objPath S3ObjectPath, value io.ReadSeeker) (S3ObjectPath, error) {
+
+	key := objPath.Key
 	s3.mux.Lock()
 	defer s3.mux.Unlock()
 	if _, ok := s3.storage[key]; ok {
