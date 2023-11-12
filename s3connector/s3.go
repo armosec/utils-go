@@ -1,0 +1,133 @@
+package s3connector
+
+import (
+	"fmt"
+	"io"
+
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/credentials"
+	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/aws/aws-sdk-go/service/s3"
+)
+
+type S3Config struct {
+	Endpoint    string `json:"endpoint"`
+	Region      string `json:"region"`
+	Bucket      string `json:"bucket"`
+	AccessKey   string `json:"accessKey"`
+	SecretKey   string `json:"secretKey"`
+	Prefix      string `json:"prefix"`
+	StorageType string `json:"storageType"`
+}
+
+type S3ObjectRange struct {
+	Start int64 `json:"start"`
+	End   int64 `json:"end"`
+}
+
+type S3ObjectPath struct {
+	Bucket string         `json:"bucket"`
+	Key    string         `json:"key"`
+	Range  *S3ObjectRange `json:"range,omitempty"`
+}
+
+type ObjectStorage interface {
+	StoreObject(key string, value io.ReadSeeker) (S3ObjectPath, error)
+	DeleteObject(key string) error
+	GetObject(objPath S3ObjectPath) (io.ReadCloser, error)
+	GetBucket() string
+}
+
+type s3ObjectStorage struct {
+	ObjectStorage
+	session      *session.Session
+	bucket       string
+	storageClass string
+	prefix       string
+}
+
+func NewS3ObjectStorage(config S3Config) (ObjectStorage, error) {
+	awsConf := &aws.Config{
+		Region:           aws.String(config.Region),
+		S3ForcePathStyle: aws.Bool(true),
+	}
+	if config.Endpoint != "" {
+		awsConf.Endpoint = aws.String(config.Endpoint)
+	}
+	if config.AccessKey != "" && config.SecretKey != "" {
+		awsConf.Credentials = credentials.NewStaticCredentials(config.AccessKey, config.SecretKey, "")
+	}
+	session, err := session.NewSession(awsConf)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create new AWS session: %w", err)
+	}
+
+	s3ObjectStorageInstance := &s3ObjectStorage{session: session, bucket: config.Bucket, storageClass: config.StorageType, prefix: config.Prefix}
+
+	// Check if the bucket exists
+	if !s3ObjectStorageInstance.BucketExists(config.Bucket) {
+		return nil, fmt.Errorf("bucket %s does not exist", config.Bucket)
+	}
+	return s3ObjectStorageInstance, nil
+}
+
+func (s *s3ObjectStorage) GetBucket() string {
+	return s.bucket
+}
+
+func (s *s3ObjectStorage) BucketExists(bucket string) bool {
+	_, err := s3.New(s.session).HeadBucket(&s3.HeadBucketInput{Bucket: aws.String(bucket)})
+	return err == nil
+}
+
+func (s *s3ObjectStorage) StoreObject(key string, value io.ReadSeeker) (S3ObjectPath, error) {
+
+	fullKey := s.prefix + key
+	_, err := s3.New(s.session).PutObject(&s3.PutObjectInput{
+		Bucket:       aws.String(s.bucket),
+		Key:          aws.String(fullKey),
+		StorageClass: aws.String(s.storageClass),
+		Body:         value,
+	})
+	if err != nil {
+		return S3ObjectPath{}, err
+	}
+	return S3ObjectPath{Key: fullKey}, nil
+}
+
+func (s *s3ObjectStorage) DeleteObject(key string) error {
+	fullKey := s.prefix + key
+	_, err := s3.New(s.session).DeleteObject(&s3.DeleteObjectInput{
+		Bucket: aws.String(s.bucket),
+		Key:    aws.String(fullKey),
+	})
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (s *s3ObjectStorage) GetObject(objPath S3ObjectPath) (io.ReadCloser, error) {
+	bucket := s.bucket
+	if objPath.Bucket != "" {
+		if s.BucketExists(objPath.Bucket) {
+			bucket = objPath.Bucket
+		} else {
+			return nil, fmt.Errorf("bucket %s does not exist", objPath.Bucket)
+		}
+
+	}
+
+	getObj := &s3.GetObjectInput{
+		Bucket: aws.String(bucket),
+		Key:    aws.String(objPath.Key),
+	}
+	if objPath.Range != nil && objPath.Range.Start != 0 && objPath.Range.End > 0 {
+		getObj.Range = aws.String(fmt.Sprintf("bytes=%d-%d", objPath.Range.Start, objPath.Range.End))
+	}
+	awsObj, err := s3.New(s.session).GetObject(getObj)
+	if err != nil {
+		return nil, fmt.Errorf("failed to GetObject, %w", err)
+	}
+	return awsObj.Body, nil
+}

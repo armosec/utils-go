@@ -3,7 +3,9 @@ module github.com/armosec/utils-go
 go 1.19
 
 require (
-	github.com/armosec/armoapi-go v0.0.247-0.20230906131055-6ed8dfcbf1ba
+	github.com/armosec/armoapi-go v0.0.259
+	github.com/aws/aws-sdk-go v1.44.312
+	github.com/cakturk/go-netstat v0.0.0-20200220111822-e5b49efee7a5
 	github.com/google/uuid v1.3.0
 	github.com/kubescape/opa-utils v0.0.255
 	github.com/stretchr/testify v1.8.4

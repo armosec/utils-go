@@ -1,0 +1,73 @@
+package s3connector
+
+import (
+	"bytes"
+	"testing"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/suite"
+)
+
+type S3ObjectStorageSuite struct {
+	suite.Suite
+	EndPointPort        int
+	randomContainerName string
+	S3Localstack        *S3LocalStack
+	shutdownFunc        func()
+}
+
+func TestS3ObjectStorage(t *testing.T) {
+	suite.Run(t, new(S3ObjectStorageSuite))
+}
+
+func (suite *S3ObjectStorageSuite) SetupSuite() {
+	suite.T().Log("setup suite")
+	suite.EndPointPort = 4566
+
+	objectName := "posture/resources/9a24c2bc-5bdb-4152-ae9c-1dcb66dd7c5b/5ca3f7c9-f4cc-4d44-a571-5b4c95985c75/rbac.authorization.k8s.io/v1//ClusterRoleBinding/system:controller:expand-controller"
+
+	content := `{"apiVersion":"rbac.authorization.k8s.io/v1","kind":"ClusterRoleBinding","metadata":{"annotations":{"rbac.authorization.kubernetes.io/autoupdate":"true"},"creationTimestamp":"2023-08-07T11:53:12Z","labels":{"kubernetes.io/bootstrapping":"rbac-defaults"},"name":"system:controller:expand-controller","resourceVersion":"157","uid":"fa23adfc-e8ee-49b7-b956-1df6674c9a1a"},"roleRef":{"apiGroup":"rbac.authorization.k8s.io","kind":"ClusterRole","name":"system:controller:expand-controller"},"subjects":[{"kind":"ServiceAccount","name":"expand-controller","namespace":"kube-system"}]}`
+
+	data := map[string]string{
+		objectName: content,
+	}
+	localstack, err := NewS3LocalStack(data)
+
+	if err != nil {
+		suite.FailNow("failed to create new S3LocalStack", err.Error())
+	}
+
+	suite.S3Localstack = localstack
+}
+
+func (suite *S3ObjectStorageSuite) TearDownSuite() {
+	suite.T().Log("tear down suite")
+	suite.S3Localstack.ShutdownFunc()
+}
+
+func (suite *S3ObjectStorageSuite) TestGetObject() {
+	res, err := suite.S3Localstack.GetLocalStack().GetObject(S3ObjectPath{
+		Key: "posture/resources/9a24c2bc-5bdb-4152-ae9c-1dcb66dd7c5b/5ca3f7c9-f4cc-4d44-a571-5b4c95985c75/rbac.authorization.k8s.io/v1//ClusterRoleBinding/system:controller:expand-controller",
+	})
+
+	suite.NoError(err)
+	suite.NotNil(res)
+}
+
+func (suite *S3ObjectStorageSuite) TestStoreObject() {
+	res, err := suite.S3Localstack.GetLocalStack().StoreObject("test", bytes.NewReader([]byte("test")))
+	suite.NoError(err)
+	suite.NotNil(res)
+}
+
+func (suite *S3ObjectStorageSuite) TestDeleteObject() {
+	err := suite.S3Localstack.GetLocalStack().DeleteObject("test1")
+	suite.NoError(err)
+
+	res, err := suite.S3Localstack.GetLocalStack().GetObject(S3ObjectPath{
+		Key: "test",
+	})
+	suite.Error(err)
+	assert.Contains(suite.T(), err.Error(), "failed to GetObject, NoSuchKey: The specified key does not exist")
+	suite.Nil(res)
+}
