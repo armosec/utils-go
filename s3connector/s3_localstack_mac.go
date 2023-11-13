@@ -1,5 +1,5 @@
-//go:build !darwin
-// +build !darwin
+//go:build darwin
+// +build darwin
 
 package s3connector
 
@@ -12,6 +12,7 @@ import (
 	"net/http"
 	"os"
 	"os/exec"
+	"strconv"
 	"strings"
 	"syscall"
 	"time"
@@ -20,7 +21,6 @@ import (
 	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/s3"
-	"github.com/cakturk/go-netstat/netstat"
 )
 
 //go:embed scripts/localstack.sh
@@ -84,6 +84,7 @@ func (s3local *S3LocalStack) GetLocalStack() ObjectStorage {
 	return s3local.retStore
 }
 
+// macOS-specific implementation of killPortProcess
 func (s3local *S3LocalStack) startLocalStack() error {
 	fmt.Printf("Starting localstack on port %d\n", s3local.endPointPort)
 
@@ -245,33 +246,34 @@ func findFreePort(rangeStart, rangeEnd int) (int, error) {
 }
 
 func killPortProcess(targetPort int) error {
-	socks6, err := netstat.TCP6Socks(netstat.NoopFilter)
+	// Use lsof to find the PID of the process listening on the target port
+	cmd := exec.Command("lsof", fmt.Sprintf("-i tcp:%d", targetPort), "-sTCP:LISTEN", "-Fp")
+	output, err := cmd.Output()
 	if err != nil {
 		return err
 	}
-	socks, err := netstat.TCPSocks(netstat.NoopFilter)
-	if err != nil {
-		return err
-	}
-	for _, sock := range append(socks6, socks...) {
-		if sock.LocalAddr.Port == uint16(targetPort) {
-			if sock.Process == nil {
-				continue
-			}
-			pid := sock.Process.Pid
-			process, err := os.FindProcess(pid)
-			if err != nil {
-				return err
-			}
-			fmt.Println("Killing process of port", pid, targetPort)
 
-			// Send a SIGTERM signal to the process
-			err = process.Signal(syscall.SIGTERM)
-			if err != nil {
-				return err
-			}
-			return nil
-		}
+	// Parse the output to extract the PID
+	outputStr := string(output)
+	if !strings.HasPrefix(outputStr, "p") {
+		return fmt.Errorf("no process found listening on port %d", targetPort)
 	}
+	pidStr := strings.TrimPrefix(strings.Split(outputStr, "\n")[0], "p")
+	pid, err := strconv.Atoi(pidStr)
+	if err != nil {
+		return err
+	}
+
+	// Find and terminate the process
+	process, err := os.FindProcess(pid)
+	if err != nil {
+		return err
+	}
+	err = process.Signal(syscall.SIGTERM)
+	if err != nil {
+		return err
+	}
+
+	fmt.Printf("Terminated process %d listening on port %d\n", pid, targetPort)
 	return nil
 }
