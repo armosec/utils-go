@@ -21,10 +21,10 @@ func NewS3Mock() S3Mock {
 	}
 }
 
-func (s3 *S3Mock) DeleteObject(key string) error {
+func (s3 *S3Mock) DeleteObject(objPath S3ObjectPath) error {
 	s3.mux.Lock()
 	defer s3.mux.Unlock()
-	delete(s3.storage, key)
+	delete(s3.storage, objPath.Key)
 	return nil
 }
 

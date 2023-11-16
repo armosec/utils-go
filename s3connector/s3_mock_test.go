@@ -71,8 +71,9 @@ func TestS3Mock_DeleteObject(t *testing.T) {
 	mock := NewS3Mock()
 	mock.storage["keyToDelete"] = "value"
 
+	objPath := S3ObjectPath{Key: "keyToDelete"}
 	// Test deleting existing object
-	err := mock.DeleteObject("keyToDelete")
+	err := mock.DeleteObject(objPath)
 	if err != nil {
 		t.Errorf("Failed to delete object: %s", err)
 	}
