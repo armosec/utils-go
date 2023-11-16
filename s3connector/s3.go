@@ -33,7 +33,7 @@ type S3ObjectPath struct {
 
 type ObjectStorage interface {
 	StoreObject(objPath S3ObjectPath, value io.ReadSeeker) (S3ObjectPath, error)
-	DeleteObject(key string) error
+	DeleteObject(S3ObjectPath) error
 	GetObject(objPath S3ObjectPath) (io.ReadCloser, error)
 	GetByRange(objPath S3ObjectPath, rangeStart, rangeEnd int64) (io.ReadCloser, error)
 	GetBucket() string
@@ -101,11 +101,10 @@ func (s *s3ObjectStorage) StoreObject(objPath S3ObjectPath, value io.ReadSeeker)
 	return S3ObjectPath{Key: fullKey}, nil
 }
 
-func (s *s3ObjectStorage) DeleteObject(key string) error {
-	fullKey := s.prefix + key
+func (s *s3ObjectStorage) DeleteObject(objPath S3ObjectPath) error {
 	_, err := s3.New(s.session).DeleteObject(&s3.DeleteObjectInput{
-		Bucket: aws.String(s.bucket),
-		Key:    aws.String(fullKey),
+		Bucket: aws.String(objPath.Bucket),
+		Key:    aws.String(objPath.Key),
 	})
 	if err != nil {
 		return err

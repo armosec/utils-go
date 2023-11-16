@@ -65,7 +65,11 @@ func (suite *S3ObjectStorageSuite) TestStoreObject() {
 }
 
 func (suite *S3ObjectStorageSuite) TestDeleteObject() {
-	err := suite.S3Localstack.GetLocalStack().DeleteObject("test1")
+	objPath := S3ObjectPath{
+		Key:    "test1",
+		Bucket: suite.S3Localstack.retStore.GetBucket(),
+	}
+	err := suite.S3Localstack.GetLocalStack().DeleteObject(objPath)
 	suite.NoError(err)
 
 	res, err := suite.S3Localstack.GetLocalStack().GetObject(S3ObjectPath{
@@ -99,6 +103,10 @@ func (suite *S3ObjectStorageSuite) TestGetByRange() {
 	suite.Equal(expectedContent, string(rangeContent))
 
 	// Clean up
-	err = suite.S3Localstack.GetLocalStack().DeleteObject(key)
+	objPath := S3ObjectPath{
+		Key:    key,
+		Bucket: suite.S3Localstack.retStore.GetBucket(),
+	}
+	err = suite.S3Localstack.GetLocalStack().DeleteObject(objPath)
 	suite.NoError(err)
 }
