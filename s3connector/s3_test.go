@@ -91,8 +91,12 @@ func (suite *S3ObjectStorageSuite) TestGetByRange() {
 	_, err := suite.S3Localstack.GetLocalStack().StoreObject(S3ObjectPath{Key: key}, bytes.NewReader([]byte(fullContent)))
 	suite.NoError(err)
 
+	objPath := S3ObjectPath{
+		Key:   key,
+		Range: &S3ObjectRange{Start: start, End: end},
+	}
 	// Perform the GetByRange operation
-	res, err := suite.S3Localstack.GetLocalStack().GetByRange(S3ObjectPath{Key: key}, start, end)
+	res, err := suite.S3Localstack.GetLocalStack().GetObject(objPath)
 	suite.NoError(err)
 	suite.NotNil(res)
 
@@ -103,7 +107,7 @@ func (suite *S3ObjectStorageSuite) TestGetByRange() {
 	suite.Equal(expectedContent, string(rangeContent))
 
 	// Clean up
-	objPath := S3ObjectPath{
+	objPath = S3ObjectPath{
 		Key:    key,
 		Bucket: suite.S3Localstack.retStore.GetBucket(),
 	}
