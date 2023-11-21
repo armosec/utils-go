@@ -117,7 +117,7 @@ func (s *s3ObjectStorage) GetObject(objPath S3ObjectPath) (io.ReadCloser, error)
 
 	if objPath.Range != nil {
 		if objPath.Range.Start < 0 || objPath.Range.End <= objPath.Range.Start {
-			return nil, fmt.Errorf("invalid range: start must be non-negative and end must be greater than start")
+			return nil, fmt.Errorf("invalid range: start must be non-negative and end must be greater than start, ranges are: %v", objPath.Range)
 		}
 		objRange = aws.String(fmt.Sprintf("bytes=%d-%d", objPath.Range.Start, objPath.Range.End))
 	}
