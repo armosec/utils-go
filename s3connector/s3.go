@@ -35,7 +35,6 @@ type ObjectStorage interface {
 	StoreObject(objPath S3ObjectPath, value io.ReadSeeker) (S3ObjectPath, error)
 	DeleteObject(S3ObjectPath) error
 	GetObject(objPath S3ObjectPath) (io.ReadCloser, error)
-	GetByRange(objPath S3ObjectPath, rangeStart, rangeEnd int64) (io.ReadCloser, error)
 	GetBucket() string
 }
 
@@ -113,6 +112,16 @@ func (s *s3ObjectStorage) DeleteObject(objPath S3ObjectPath) error {
 }
 
 func (s *s3ObjectStorage) GetObject(objPath S3ObjectPath) (io.ReadCloser, error) {
+
+	var objRange *string
+
+	if objPath.Range != nil {
+		if objPath.Range.Start < 0 || objPath.Range.End <= objPath.Range.Start {
+			return nil, fmt.Errorf("invalid range: start must be non-negative and end must be greater than start, ranges are: %v", objPath.Range)
+		}
+		objRange = aws.String(fmt.Sprintf("bytes=%d-%d", objPath.Range.Start, objPath.Range.End))
+	}
+
 	bucket := s.bucket
 	if objPath.Bucket != "" {
 		if err := s.BucketExists(objPath.Bucket); err != nil {
@@ -122,10 +131,10 @@ func (s *s3ObjectStorage) GetObject(objPath S3ObjectPath) (io.ReadCloser, error)
 		}
 
 	}
-
 	getObj := &s3.GetObjectInput{
 		Bucket: aws.String(bucket),
 		Key:    aws.String(objPath.Key),
+		Range:  objRange,
 	}
 	if objPath.Range != nil && objPath.Range.Start > 0 && objPath.Range.End > 0 {
 		getObj.Range = aws.String(fmt.Sprintf("bytes=%d-%d", objPath.Range.Start, objPath.Range.End))
@@ -135,32 +144,4 @@ func (s *s3ObjectStorage) GetObject(objPath S3ObjectPath) (io.ReadCloser, error)
 		return nil, fmt.Errorf("failed to GetObject, %w", err)
 	}
 	return awsObj.Body, nil
-}
-
-func (s *s3ObjectStorage) GetByRange(objPath S3ObjectPath, rangeStart, rangeEnd int64) (io.ReadCloser, error) {
-	if rangeStart < 0 || rangeEnd <= rangeStart {
-		return nil, fmt.Errorf("invalid range: start must be non-negative and end must be greater than start")
-	}
-
-	bucket := s.bucket
-	if objPath.Bucket != "" {
-		if err := s.BucketExists(objPath.Bucket); err != nil {
-			return nil, fmt.Errorf("failed to check if bucket exists: %w", err)
-		} else {
-			bucket = objPath.Bucket
-		}
-	}
-
-	getObjInput := &s3.GetObjectInput{
-		Bucket: aws.String(bucket),
-		Key:    aws.String(objPath.Key),
-		Range:  aws.String(fmt.Sprintf("bytes=%d-%d", rangeStart, rangeEnd)),
-	}
-
-	result, err := s3.New(s.session).GetObject(getObjInput)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get object by range: %w", err)
-	}
-
-	return result.Body, nil
 }
