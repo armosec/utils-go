@@ -1,11 +1,13 @@
 package httputils
 
 import (
+	"bytes"
 	"fmt"
 	"net/http"
 	"reflect"
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -295,4 +297,197 @@ func TestSplit2Chunks(t *testing.T) {
 		})
 	}
 
+}
+
+type mockHttpClient struct {
+	doFunc func(req *http.Request) (*http.Response, error)
+}
+
+func (m *mockHttpClient) Do(req *http.Request) (*http.Response, error) {
+	return m.doFunc(req)
+}
+
+func TestHttpPostWithContext(t *testing.T) {
+	defaultMaxTime := 5 * time.Second
+
+	t.Run("Successful request", func(t *testing.T) {
+		expectedURL := "http://example.com"
+		expectedBody := []byte("test body")
+		headers := map[string]string{
+			"Content-Type": "application/json",
+		}
+
+		expectedResponse := &http.Response{
+			StatusCode: http.StatusOK,
+			Body:       http.NoBody,
+		}
+
+		httpClient := &mockHttpClient{
+			doFunc: func(req *http.Request) (*http.Response, error) {
+				assert.Equal(t, expectedURL, req.URL.String())
+				assert.Equal(t, "POST", req.Method)
+				assert.Equal(t, expectedBody, readRequestBody(req))
+
+				return expectedResponse, nil
+			},
+		}
+
+		resp, err := HttpPost(httpClient, expectedURL, headers, expectedBody)
+
+		assert.NoError(t, err)
+		assert.Equal(t, expectedResponse.StatusCode, resp.StatusCode)
+	})
+
+	t.Run("Permanent error", func(t *testing.T) {
+		expectedURL := "http://example.com"
+		expectedBody := []byte("test body")
+		expectedHeaders := map[string]string{
+			"Content-Type": "application/json",
+		}
+		expectedError := fmt.Errorf("permanent error")
+
+		httpClient := &mockHttpClient{
+			doFunc: func(req *http.Request) (*http.Response, error) {
+				return nil, expectedError
+			},
+		}
+
+		resp, err := HttpPost(httpClient, expectedURL, expectedHeaders, expectedBody)
+
+		assert.Equal(t, expectedError, err)
+		assert.Nil(t, resp)
+	})
+
+	t.Run("Non-retryable error", func(t *testing.T) {
+		expectedURL := "http://example.com"
+		expectedBody := []byte("test body")
+		expectedHeaders := map[string]string{
+			"Content-Type": "application/json",
+		}
+		expectedResponse := &http.Response{
+			StatusCode: http.StatusInternalServerError,
+			Body:       http.NoBody,
+		}
+
+		httpClient := &mockHttpClient{
+			doFunc: func(req *http.Request) (*http.Response, error) {
+				return expectedResponse, nil
+			},
+		}
+
+		resp, err := HttpPostWithRetry(httpClient, expectedURL, expectedHeaders, expectedBody, defaultMaxTime)
+
+		assert.Equal(t, nil, err)
+		assert.Equal(t, expectedResponse.StatusCode, resp.StatusCode)
+	})
+
+	t.Run("Retryable error", func(t *testing.T) {
+		expectedURL := "http://example.com"
+		expectedBody := []byte("test body")
+		expectedHeaders := map[string]string{
+			"Content-Type": "application/json",
+		}
+		expectedResponse := &http.Response{
+			StatusCode: http.StatusBadGateway,
+			Body:       http.NoBody,
+		}
+		expectedError := fmt.Errorf("received status code: %d", expectedResponse.StatusCode)
+
+		httpClient := &mockHttpClient{
+			doFunc: func(req *http.Request) (*http.Response, error) {
+				return expectedResponse, nil
+			},
+		}
+
+		resp, err := HttpPostWithRetry(httpClient, expectedURL, expectedHeaders, expectedBody, defaultMaxTime)
+
+		assert.Equal(t, expectedError, err)
+		assert.Equal(t, expectedResponse.StatusCode, resp.StatusCode)
+	})
+
+	t.Run("Retryable error with successful retry", func(t *testing.T) {
+		expectedURL := "http://example.com"
+		expectedBody := []byte("test body")
+		expectedHeaders := map[string]string{
+			"Content-Type": "application/json",
+		}
+		expectedResponse := &http.Response{
+			StatusCode: http.StatusBadGateway,
+			Body:       http.NoBody,
+		}
+
+		retryCount := 0
+		httpClient := &mockHttpClient{
+			doFunc: func(req *http.Request) (*http.Response, error) {
+				retryCount++
+				if retryCount == 1 {
+					return expectedResponse, nil
+				}
+				expectedResponse.StatusCode = http.StatusOK
+				return expectedResponse, nil
+			},
+		}
+
+		resp, err := HttpPostWithRetry(httpClient, expectedURL, expectedHeaders, expectedBody, defaultMaxTime)
+
+		assert.NoError(t, err)
+		assert.Equal(t, expectedResponse.StatusCode, resp.StatusCode)
+		assert.Equal(t, 2, retryCount)
+	})
+}
+
+func readRequestBody(req *http.Request) []byte {
+	buf := new(bytes.Buffer)
+	buf.ReadFrom(req.Body)
+	return buf.Bytes()
+}
+func TestDefaultShouldRetry(t *testing.T) {
+	tests := []struct {
+		name     string
+		response *http.Response
+		want     bool
+	}{
+		{
+			name: "StatusUnauthorized",
+			response: &http.Response{
+				StatusCode: http.StatusUnauthorized,
+			},
+			want: false,
+		},
+		{
+			name: "StatusForbidden",
+			response: &http.Response{
+				StatusCode: http.StatusForbidden,
+			},
+			want: false,
+		},
+		{
+			name: "StatusNotFound",
+			response: &http.Response{
+				StatusCode: http.StatusNotFound,
+			},
+			want: false,
+		},
+		{
+			name: "StatusInternalServerError",
+			response: &http.Response{
+				StatusCode: http.StatusInternalServerError,
+			},
+			want: false,
+		},
+		{
+			name: "OtherStatusCodes",
+			response: &http.Response{
+				StatusCode: http.StatusOK,
+			},
+			want: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := defaultShouldRetry(tt.response)
+			assert.Equal(t, tt.want, got)
+		})
+	}
 }
