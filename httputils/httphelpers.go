@@ -9,11 +9,16 @@ import (
 	"net/http"
 	"strings"
 	"sync"
+	"time"
+
+	"github.com/cenkalti/backoff"
 )
 
 type IHttpClient interface {
 	Do(req *http.Request) (*http.Response, error)
 }
+
+type ShouldNotRetryFunc func(resp *http.Response) bool
 
 // JSONDecoder returns JSON decoder for given string
 func JSONDecoder(origin string) *json.Decoder {
@@ -65,21 +70,64 @@ func HttpGetWithContext(ctx context.Context, httpClient IHttpClient, fullURL str
 }
 
 func HttpPost(httpClient IHttpClient, fullURL string, headers map[string]string, body []byte) (*http.Response, error) {
-	return HttpPostWithContext(context.Background(), httpClient, fullURL, headers, body)
+	return HttpPostWithContext(context.Background(), httpClient, fullURL, headers, body, -1, func(resp *http.Response) bool {
+		return true
+	})
 }
 
-func HttpPostWithContext(ctx context.Context, httpClient IHttpClient, fullURL string, headers map[string]string, body []byte) (*http.Response, error) {
-	req, err := http.NewRequestWithContext(ctx, "POST", fullURL, bytes.NewReader(body))
-	if err != nil {
-		return nil, err
-	}
-	setHeaders(req, headers)
+func HttpPostWithRetry(httpClient IHttpClient, fullURL string, headers map[string]string, body []byte, maxElapsedTime time.Duration) (*http.Response, error) {
+	return HttpPostWithContext(context.Background(), httpClient, fullURL, headers, body, maxElapsedTime, defaultShouldRetry)
+}
 
-	return httpClient.Do(req)
+func HttpPostWithContext(ctx context.Context, httpClient IHttpClient, fullURL string, headers map[string]string, body []byte, maxElapsedTime time.Duration, shouldRetry func(resp *http.Response) bool) (*http.Response, error) {
+	var resp *http.Response
+	var err error
+
+	operation := func() error {
+		req, err := http.NewRequestWithContext(ctx, "POST", fullURL, bytes.NewReader(body))
+		if err != nil {
+			return backoff.Permanent(err)
+		}
+		setHeaders(req, headers)
+
+		resp, err = httpClient.Do(req)
+		if err != nil {
+			return err
+		}
+		defer resp.Body.Close()
+
+		// If the status code is not 200, we will retry
+		if resp.StatusCode != http.StatusOK {
+			if shouldRetry(resp) {
+				return fmt.Errorf("received status code: %d", resp.StatusCode)
+			}
+			return backoff.Permanent(err)
+		}
+
+		return nil
+	}
+
+	// Create a new exponential backoff policy
+	expBackOff := backoff.NewExponentialBackOff()
+	expBackOff.MaxElapsedTime = maxElapsedTime // Set the maximum elapsed time
+
+	// Run the operation with the exponential backoff policy
+	if err = backoff.Retry(operation, expBackOff); err != nil {
+		return resp, err
+	}
+
+	return resp, nil
+}
+func defaultShouldRetry(resp *http.Response) bool {
+	// If received codes 401/403/404/500 should return false
+	return resp.StatusCode != http.StatusUnauthorized &&
+		resp.StatusCode != http.StatusForbidden &&
+		resp.StatusCode != http.StatusNotFound &&
+		resp.StatusCode != http.StatusInternalServerError
 }
 
 func setHeaders(req *http.Request, headers map[string]string) {
-	if headers != nil && len(headers) > 0 {
+	if len(headers) > 0 {
 		for k, v := range headers {
 			req.Header.Set(k, v)
 		}
