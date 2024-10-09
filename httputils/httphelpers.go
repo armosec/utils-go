@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/cenkalti/backoff"
+	"go.uber.org/zap"
 )
 
 type IHttpClient interface {
@@ -86,12 +87,14 @@ func HttpPostWithContext(ctx context.Context, httpClient IHttpClient, fullURL st
 	operation := func() error {
 		req, err := http.NewRequestWithContext(ctx, "POST", fullURL, bytes.NewReader(body))
 		if err != nil {
+			zap.L().Error("error creating request", zap.Error(err), zap.String("line", "90"))
 			return backoff.Permanent(err)
 		}
 		setHeaders(req, headers)
 
 		resp, err = httpClient.Do(req)
 		if err != nil {
+			zap.L().Error("error sending request", zap.Error(err), zap.String("line", "97"))
 			return err
 		}
 		defer resp.Body.Close()
@@ -99,6 +102,7 @@ func HttpPostWithContext(ctx context.Context, httpClient IHttpClient, fullURL st
 		// If the status code is not 200, we will retry
 		if resp.StatusCode != http.StatusOK {
 			if shouldRetry(resp) {
+				zap.L().Error("received status code", zap.Int("status_code", resp.StatusCode), zap.String("line", "105"))
 				return fmt.Errorf("received status code: %d", resp.StatusCode)
 			}
 			return backoff.Permanent(err)
@@ -113,6 +117,7 @@ func HttpPostWithContext(ctx context.Context, httpClient IHttpClient, fullURL st
 
 	// Run the operation with the exponential backoff policy
 	if err = backoff.Retry(operation, expBackOff); err != nil {
+		zap.L().Error("error sending request", zap.Error(err), zap.String("line", "121"))
 		return resp, err
 	}
 
