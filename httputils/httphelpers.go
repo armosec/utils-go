@@ -83,6 +83,7 @@ func HttpPostWithContext(ctx context.Context, httpClient IHttpClient, fullURL st
 	var resp *http.Response
 	var err error
 
+	fmt.Println("starting post request", fullURL, "line 101")
 	operation := func() error {
 		req, err := http.NewRequestWithContext(ctx, "POST", fullURL, bytes.NewReader(body))
 		if err != nil {
@@ -93,8 +94,8 @@ func HttpPostWithContext(ctx context.Context, httpClient IHttpClient, fullURL st
 
 		resp, err = httpClient.Do(req)
 		if err != nil {
-			fmt.Println("error sending request", err, "line 97")
-			return err
+			fmt.Println("error making request", err, "line 97")
+			return fmt.Errorf("error making request: %w", err)
 		}
 		defer resp.Body.Close()
 
@@ -106,7 +107,7 @@ func HttpPostWithContext(ctx context.Context, httpClient IHttpClient, fullURL st
 			}
 			return backoff.Permanent(err)
 		}
-
+		fmt.Println("request successful", "line 110")
 		return nil
 	}
 
