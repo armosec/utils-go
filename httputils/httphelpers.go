@@ -86,19 +86,16 @@ func HttpPostWithContext(ctx context.Context, httpClient IHttpClient, fullURL st
 	operation := func() error {
 		req, err := http.NewRequestWithContext(ctx, "POST", fullURL, bytes.NewReader(body))
 		if err != nil {
-			fmt.Println("Error creating request")
 			return backoff.Permanent(err)
 		}
 		setHeaders(req, headers)
 
 		resp, err = httpClient.Do(req)
 		if err != nil {
-			fmt.Println("Error sending request")
 			return err
 		}
 		defer resp.Body.Close()
 
-		// If the status code is not 200, we will retry
 		if resp.StatusCode != http.StatusOK {
 			if shouldRetry(resp) {
 				return fmt.Errorf("received status code: %d", resp.StatusCode)
@@ -109,18 +106,18 @@ func HttpPostWithContext(ctx context.Context, httpClient IHttpClient, fullURL st
 		return nil
 	}
 
-	// Create a new exponential backoff policy
 	expBackOff := backoff.NewExponentialBackOff()
-	expBackOff.MaxElapsedTime = maxElapsedTime // Set the maximum elapsed time
+	expBackOff.MaxElapsedTime = maxElapsedTime
 
-	// Run the operation with the exponential backoff policy
 	if err = backoff.Retry(operation, expBackOff); err != nil {
-		fmt.Print("Error sending request 2")
 		return resp, err
 	}
+
 	fmt.Println("Success sending request")
 	return resp, nil
 }
+
+
 func defaultShouldRetry(resp *http.Response) bool {
 	// If received codes 401/403/404/500 should return false
 	return resp.StatusCode != http.StatusUnauthorized &&
