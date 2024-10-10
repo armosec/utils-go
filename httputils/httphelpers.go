@@ -83,18 +83,15 @@ func HttpPostWithContext(ctx context.Context, httpClient IHttpClient, fullURL st
 	var resp *http.Response
 	var err error
 
-	fmt.Println("starting post request", fullURL, "line 101")
 	operation := func() error {
 		req, err := http.NewRequestWithContext(ctx, "POST", fullURL, bytes.NewReader(body))
 		if err != nil {
-			fmt.Println("error creating request", err, "line 90")
 			return backoff.Permanent(err)
 		}
 		setHeaders(req, headers)
 
 		resp, err = httpClient.Do(req)
 		if err != nil {
-			fmt.Println("error making request", err, "line 97")
 			return fmt.Errorf("error making request: %w", err)
 		}
 		defer resp.Body.Close()
@@ -102,7 +99,6 @@ func HttpPostWithContext(ctx context.Context, httpClient IHttpClient, fullURL st
 		// If the status code is not 200, we will retry
 		if resp.StatusCode != http.StatusOK {
 			if shouldRetry(resp) {
-				fmt.Println("received status code", resp.StatusCode, "line 105")
 				return fmt.Errorf("received status code: %d", resp.StatusCode)
 			}
 			return backoff.Permanent(err)
@@ -116,10 +112,10 @@ func HttpPostWithContext(ctx context.Context, httpClient IHttpClient, fullURL st
 
 	// Run the operation with the exponential backoff policy
 	if err = backoff.Retry(operation, expBackOff); err != nil {
-		fmt.Println("error retrying request", err, "line 120")
+		fmt.Println("error retrying request line 115")
 		return resp, err
 	}
-	fmt.Println("request successful", "line 122")
+	fmt.Println("request successful", "line 118")
 	return resp, nil
 }
 func defaultShouldRetry(resp *http.Response) bool {
