@@ -95,9 +95,15 @@ func HttpPostWithContext(ctx context.Context, httpClient IHttpClient, fullURL st
 			return err
 		}
 
+		defer func() {
+			if resp != nil && resp.Body != nil {
+				io.Copy(io.Discard, resp.Body)
+				resp.Body.Close()
+			}
+		}()
+
 		if resp.StatusCode != http.StatusOK {
 			if shouldRetry(resp) {
-				resp.Body.Close()
 				return fmt.Errorf("received status code: %d", resp.StatusCode)
 			}
 			return backoff.Permanent(err)
@@ -112,14 +118,9 @@ func HttpPostWithContext(ctx context.Context, httpClient IHttpClient, fullURL st
 	if err = backoff.Retry(operation, expBackOff); err != nil {
 		return resp, err
 	}
-
-	if resp != nil && resp.Body != nil {
-		defer resp.Body.Close()
-	}
-
-	fmt.Println("Success sending request")
 	return resp, nil
 }
+
 
 
 func defaultShouldRetry(resp *http.Response) bool {
