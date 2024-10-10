@@ -107,7 +107,6 @@ func HttpPostWithContext(ctx context.Context, httpClient IHttpClient, fullURL st
 			}
 			return backoff.Permanent(err)
 		}
-		fmt.Println("request successful", "line 110")
 		return nil
 	}
 
@@ -120,7 +119,7 @@ func HttpPostWithContext(ctx context.Context, httpClient IHttpClient, fullURL st
 		fmt.Println("error retrying request", err, "line 120")
 		return resp, err
 	}
-
+	fmt.Println("request successful", "line 122")
 	return resp, nil
 }
 func defaultShouldRetry(resp *http.Response) bool {
