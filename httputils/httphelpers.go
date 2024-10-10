@@ -86,14 +86,14 @@ func HttpPostWithContext(ctx context.Context, httpClient IHttpClient, fullURL st
 	operation := func() error {
 		req, err := http.NewRequestWithContext(ctx, "POST", fullURL, bytes.NewReader(body))
 		if err != nil {
-			fmt.Print("Error creating request")
+			fmt.Println("Error creating request")
 			return backoff.Permanent(err)
 		}
 		setHeaders(req, headers)
 
 		resp, err = httpClient.Do(req)
 		if err != nil {
-			fmt.Print("Error sending request")
+			fmt.Println("Error sending request")
 			return err
 		}
 		defer resp.Body.Close()
@@ -118,7 +118,7 @@ func HttpPostWithContext(ctx context.Context, httpClient IHttpClient, fullURL st
 		fmt.Print("Error sending request 2")
 		return resp, err
 	}
-	fmt.Print("Success sending request")
+	fmt.Println("Success sending request")
 	return resp, nil
 }
 func defaultShouldRetry(resp *http.Response) bool {
