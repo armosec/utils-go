@@ -3,8 +3,8 @@ module github.com/armosec/utils-go
 go 1.21
 
 require (
-	github.com/cenkalti/backoff v2.2.1+incompatible
-	github.com/stretchr/testify v1.8.4
+	github.com/cenkalti/backoff/v4 v4.3.0
+	github.com/stretchr/testify v1.9.0
 )
 
 require (
