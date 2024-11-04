@@ -11,7 +11,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/cenkalti/backoff"
+	"github.com/cenkalti/backoff/v4"
 )
 
 type IHttpClient interface {
@@ -94,11 +94,12 @@ func HttpPostWithContext(ctx context.Context, httpClient IHttpClient, fullURL st
 		if err != nil {
 			return err
 		}
-		defer resp.Body.Close()
 
 		// If the status code is not 200, we will retry
 		if resp.StatusCode != http.StatusOK {
 			if shouldRetry(resp) {
+				// only close the body if we are going to retry
+				_ = resp.Body.Close()
 				return fmt.Errorf("received status code: %d", resp.StatusCode)
 			}
 			return backoff.Permanent(err)
@@ -118,6 +119,7 @@ func HttpPostWithContext(ctx context.Context, httpClient IHttpClient, fullURL st
 
 	return resp, nil
 }
+
 func defaultShouldRetry(resp *http.Response) bool {
 	// If received codes 401/403/404/500 should return false
 	return resp.StatusCode != http.StatusUnauthorized &&
@@ -177,9 +179,9 @@ func Split2Chunks[T any](maxNumOfChunks int, slice []T) [][]T {
 	}
 
 	for i := 0; i < maxNumOfChunks; i++ {
-		min := (i * len(slice) / maxNumOfChunks)
-		max := ((i + 1) * len(slice)) / maxNumOfChunks
-		divided = append(divided, slice[min:max])
+		myMin := i * len(slice) / maxNumOfChunks
+		myMax := ((i + 1) * len(slice)) / maxNumOfChunks
+		divided = append(divided, slice[myMin:myMax])
 	}
 	return divided
 }
@@ -227,16 +229,16 @@ func splitSlice2Chunks[T any](slice []T, maxSize int, chunks chan<- []T, wg *syn
 		//slice is bigger than max size
 		//split the slice to slices smaller than max size
 		index := 0
-		for i, _ := range slice {
+		for i := range slice {
 			jsonSize = JSONSize(slice[index : i+1])
 			if jsonSize > maxSize {
 				//send the part of the slice that is smaller than max size
-				splitSlice2Chunks(slice[index:i], maxSize, chunks, wg)
+				splitSlice2Chunks[T](slice[index:i], maxSize, chunks, wg)
 				index = i
 			}
 		}
 		//send the last part of the slice
-		splitSlice2Chunks(slice[index:], maxSize, chunks, wg)
+		splitSlice2Chunks[T](slice[index:], maxSize, chunks, wg)
 	}(slice, maxSize, chunks, wg)
 }
 
